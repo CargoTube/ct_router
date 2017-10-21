@@ -1,2 +1,2 @@
-# ct_switch
-Switches can change the directions cans take, this is the so called 'router'.
+# ct_router
+The basic routing facility
