@@ -1,0 +1,15 @@
+{application, ct_router_basic,
+ [{description, "Cargotube Basic Router"},
+  {vsn, "0.1.0"},
+  {registered, []},
+  {applications,
+   [kernel,
+    stdlib,
+    ct_router_if
+   ]},
+  {env,[]},
+  {modules, []},
+  {maintainers, []},
+  {licenses, []},
+  {links, []}
+ ]}.
