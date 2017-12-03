@@ -1,11 +1,13 @@
-{application, ct_router_basic,
- [{description, "Cargotube Basic Router"},
+{application, ct_router,
+ [{description, "Cargotube Core Router"},
   {vsn, "0.1.0"},
   {registered, []},
   {applications,
    [kernel,
     stdlib,
-    ct_router_if
+    jobs,
+    lager,
+    eper
    ]},
   {env,[]},
   {modules, []},

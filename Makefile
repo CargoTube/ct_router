@@ -17,7 +17,7 @@ rel:
 	$(REBAR) release
 
 run: rel
-	./_build/default/rel/ct_router_basic/bin/ct_router_basic
+	./_build/default/rel/ct_router/bin/ct_router
 
 ct:
 	$(REBAR) ct
