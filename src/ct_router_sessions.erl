@@ -9,4 +9,4 @@ close_session(_Session) ->
     ok.
 
 get_queue(_Session) ->
-    default_queue.
+    ct_queue_established.
