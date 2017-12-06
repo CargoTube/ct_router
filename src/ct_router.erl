@@ -33,7 +33,7 @@ get_maybe_jobid_for_session(Session) ->
 
 
 get_maybe_jobid(QueueType) ->
-    {ok, Queue} = application:gen_env(QueueType),
+    {ok, Queue} = application:get_env(QueueType),
     jobs:ask(Queue).
 
 
