@@ -10,12 +10,13 @@
          handle_session_closed/2
         ]).
 
+
 handle_hello(Hello, PeerAtGate) ->
-    MaybeJobId = get_maybe_jobid(hello_queue),
+    MaybeJobId = get_maybe_jobid(ct_queue_hello),
     maybe_handle_hello(MaybeJobId, Hello, PeerAtGate).
 
 handle_authenticate(Authenticate, PeerAtGate) ->
-    MaybeJobId = get_maybe_jobid(authenticate_queue),
+    MaybeJobId = get_maybe_jobid(ct_queue_authenticate),
     maybe_handle_authenticate(MaybeJobId, Authenticate, PeerAtGate).
 
 handle_established(Type, Message, Session, PeerAtGate) ->
@@ -28,12 +29,11 @@ handle_session_closed(Session, _PeerAtGate) ->
 
 
 get_maybe_jobid_for_session(Session) ->
-    QueueName = ct_router_session:get_queue(Session),
-    jobs:ask(QueueName).
+    {ok, Queue} = ct_router_session:get_queue(Session),
+    jobs:ask(Queue).
 
 
-get_maybe_jobid(QueueType) ->
-    {ok, Queue} = application:get_env(QueueType),
+get_maybe_jobid(Queue) ->
     jobs:ask(Queue).
 
 
