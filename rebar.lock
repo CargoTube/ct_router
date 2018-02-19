@@ -9,8 +9,7 @@
  {<<"jsone">>,{pkg,<<"jsone">>,<<"1.4.1">>},1},
  {<<"lager">>,{pkg,<<"lager">>,<<"3.5.1">>},0},
  {<<"msgpack">>,{pkg,<<"msgpack">>,<<"0.7.0">>},1},
- {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.0.0">>},1},
- {<<"rocksdb">>,{pkg,<<"rocksdb">>,<<"0.13.1">>},0}]}.
+ {<<"parse_trans">>,{pkg,<<"parse_trans">>,<<"3.0.0">>},1}]}.
 [
 {pkg_hash,[
  {<<"eper">>, <<"F5FB2DAA0DF8878748E1C598428EDA942A173E5121FF35C1D632129B84593A3A">>},
@@ -19,6 +18,5 @@
  {<<"jsone">>, <<"10ECFB2E2FD216D6451AF71CF14F276E063A096E15B685DE7535FD680466C9B5">>},
  {<<"lager">>, <<"63897A61AF646C59BB928FEE9756CE8BDD02D5A1A2F3551D4A5E38386C2CC071">>},
  {<<"msgpack">>, <<"128AE0A2227C7E7A2847C0F0F73551C268464F8C1EE96BFFB920BC0A5712B295">>},
- {<<"parse_trans">>, <<"9E96B1C9C3A0DF54E7B76F8F685D38BFA1EB21B31E042B1D1A5A70258E4DB1E3">>},
- {<<"rocksdb">>, <<"14BAF1C240F4A678FA4CB0BF624016D5D12A4A0E3F09B8F52924ABDCE31FBD66">>}]}
+ {<<"parse_trans">>, <<"9E96B1C9C3A0DF54E7B76F8F685D38BFA1EB21B31E042B1D1A5A70258E4DB1E3">>}]}
 ].

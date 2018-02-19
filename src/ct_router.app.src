@@ -1,11 +1,11 @@
 {application, ct_router,
  [{description, "Cargotube Core Router"},
   {vsn, "0.1.0"},
-  {registered, [ctr_sessions]},
+  {registered, [ct_router_sup,
+                ctr_sessions]},
   {applications,
    [kernel,
     stdlib,
-    esqlite,
     jobs,
     lager,
     eper
