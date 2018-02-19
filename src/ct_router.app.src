@@ -1,6 +1,7 @@
 {application, ct_router,
  [{description, "Cargotube Core Router"},
-  {vsn, "0.1.0"},
+  {vsn, "semver"},
+  {mod, {watts_app, []}},
   {registered, [ct_router_sup,
                 ctr_sessions]},
   {applications,
