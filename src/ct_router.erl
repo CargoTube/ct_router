@@ -5,68 +5,27 @@
 
 -export([
          handle_hello/2,
-         handle_authenticate/2,
+         handle_authenticate/3,
          handle_established/4,
          handle_session_closed/2
         ]).
 
 
 handle_hello(Hello, PeerAtGate) ->
-    MaybeJobId = get_maybe_jobid(ct_queue_hello),
-    maybe_handle_hello(MaybeJobId, Hello, PeerAtGate).
+    ctr_auth:handle_hello(Hello, PeerAtGate).
 
-handle_authenticate(Authenticate, PeerAtGate) ->
-    MaybeJobId = get_maybe_jobid(ct_queue_authenticate),
-    maybe_handle_authenticate(MaybeJobId, Authenticate, PeerAtGate).
+handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
+    Session = get_session(SessionId),
+    ctr_auth:handle_authenticate(Authenticate, Session, PeerAtGate).
 
-handle_established(Type, Message, Session, PeerAtGate) ->
-    MaybeJobId = get_maybe_jobid_for_session(Session),
-    maybe_handle_established(MaybeJobId, Type, Message, Session, PeerAtGate).
+handle_established(Type, Message, SessionId, PeerAtGate) ->
+    Session = get_session(SessionId),
+    ctr_routing:handle_established(Type, Message, Session, PeerAtGate).
 
-handle_session_closed(Session, _PeerAtGate) ->
-    ct_router_sessions:close_session(Session),
+handle_session_closed(SessionId, _PeerAtGate) ->
+    Session = get_session(SessionId),
+    ctr_sessions:close_session(Session),
     ok.
 
-
-get_maybe_jobid_for_session(Session) ->
-    {ok, Queue} = ct_router_session:get_queue(Session),
-    jobs:ask(Queue).
-
-
-get_maybe_jobid(Queue) ->
-    jobs:ask(Queue).
-
-
-
-maybe_handle_hello({ok, JobId}, Hello, PeerAtGate) ->
-    try
-        ct_router_auth:handle_hello(Hello, PeerAtGate)
-    after
-        jobs:done(JobId)
-    end,
-    ok;
-maybe_handle_hello({error, rejected}, _Hello, PeerAtGate) ->
-    PeerAtGate ! {to_peer, ?ABORT(#{}, canceled)},
-    ok.
-
-maybe_handle_authenticate({ok, JobId}, Authenticate, PeerAtGate) ->
-    try
-        ct_router_auth:handle_authenticate(Authenticate, PeerAtGate)
-    after
-        jobs:done(JobId)
-    end,
-    ok;
-maybe_handle_authenticate({error, rejected}, _Authenticate, PeerAtGate) ->
-    PeerAtGate ! {to_peer, ?ABORT(#{}, canceled)},
-    ok.
-
-
-maybe_handle_established({ok, JobId}, Type, Message, Session, Peer) ->
-    try
-        ct_router_routing:handle_established(Type, Message, Session, Peer)
-    after
-        jobs:done(JobId)
-    end,
-    ok;
-maybe_handle_established({error, rejected}, Type, Message, Session, Peer) ->
-    ct_router_routing:reject_for_message(Type, Message, Session, Peer).
+get_session(SessionId) ->
+    ctr_sessions:lookup(SessionId).
