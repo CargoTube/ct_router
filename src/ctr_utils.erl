@@ -1,7 +1,6 @@
 -module(ctr_utils).
 
 -export([
-         init/0,
          gen_global_id/0
         ]).
 
