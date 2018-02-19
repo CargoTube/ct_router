@@ -1,4 +1,4 @@
--module(ct_router_utils).
+-module(ctr_utils).
 
 -export([
          init/0,
