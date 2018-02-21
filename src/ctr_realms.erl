@@ -7,6 +7,7 @@
          close_realm/1,
          lookup_realm/1,
 
+         list_realms/0,
 
          start_link/0,
          init/1,
@@ -31,6 +32,10 @@ close_realm(Realm) ->
 lookup_realm(Name) ->
     to_tagged_result(ets:lookup(?MODULE, Name)).
 
+list_realms() ->
+    gen_server:call(?MODULE, list_realms).
+
+
 -spec start_link() -> {ok, pid()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, no_parameter, []).
@@ -48,6 +53,9 @@ handle_call({update_session, Session}, _From, State) ->
 handle_call({new_session, PeerAtGate}, _From, State) ->
     Result = create_new_realm(PeerAtGate),
     {reply, Result, State};
+handle_call(list_realms, _From, State) ->
+    do_list_realms(),
+    {reply, ok, State};
 handle_call(_Msg, _From, State) ->
     {reply, ignored, State}.
 
@@ -95,6 +103,20 @@ delete_if_exists([{Id, _Realm}]) ->
     true = ets:delete(?MODULE, Id),
     %% TODO: close all related sessions
     ok.
+
+do_list_realms() ->
+    true = ets:safe_fixtable(?MODULE, true),
+    First = ets:first(?MODULE),
+    print_realm_or_exit(First).
+
+print_realm_or_exit('$end_of_table') ->
+    true = ets:safe_fixtable(?MODULE, false),
+    ok;
+print_realm_or_exit({_, Realm} = Entry) ->
+    lager:debug(io_lib:format("~p", Realm)),
+    Next = ets:next(?MODULE, Entry),
+    print_realm_or_exit(Next).
+
 
 create_table() ->
     ets:new(?MODULE, [named_table, {keypos, 1}, set, protected, {heir, none}]),

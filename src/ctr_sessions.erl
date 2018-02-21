@@ -109,17 +109,22 @@ delete_if_exists([{Id, Session}]) ->
     ok.
 
 do_list_sessions() ->
-    ets:safe_fixtable(?MODULE, true),
+    true = ets:safe_fixtable(?MODULE, true),
     First = ets:first(?MODULE),
     print_session_or_exit(First).
 
 print_session_or_exit('$end_of_table') ->
-    ets:safe_fixtable(?MODULE, false),
+    true = ets:safe_fixtable(?MODULE, false),
     ok;
 print_session_or_exit(Entry) ->
-    lager:debug(io_lib:format("~p~", Entry)),
+    print_session(Entry),
     Next = ets:next(?MODULE, Entry),
     print_session_or_exit(Next).
+
+print_session({Id, Session}) when is_integer(Id) ->
+    lager:debug(io_lib:format("~p", Session));
+print_session(_) ->
+    ok.
 
 
 
