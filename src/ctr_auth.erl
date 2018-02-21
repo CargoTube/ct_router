@@ -6,10 +6,10 @@
 
 -include_lib("ct_msg/include/ct_msg.hrl").
 
-handle_hello({hello, Realm, Details}, Peer) ->
-    RealmExists = does_realm_exist(Realm),
-    SessionResult = maybe_create_session(RealmExists, Realm, Details, Peer),
-    send_welcome_challenge_or_abort(SessionResult, Realm, Peer).
+handle_hello({hello, RealmName, Details}, Peer) ->
+    Result = ctr_realms:lookup(RealmName),
+    SessionResult = maybe_create_session(Result, RealmName, Details, Peer),
+    send_welcome_challenge_or_abort(SessionResult, RealmName, Peer).
 
 
 handle_authenticate(_Authenticate, PeerAtGate) ->
@@ -17,20 +17,18 @@ handle_authenticate(_Authenticate, PeerAtGate) ->
     ok.
 
 
-does_realm_exist(_RealmName) ->
-    true.
-
-
-maybe_create_session(true, Realm, Details, Peer) ->
-    {ok, Session} = ctr_sessions:create_new_session(Realm, Peer),
-    AuthType = get_auth_type(Realm, Details),
-    {ok, Session, AuthType};
-maybe_create_session(false, _Realm, _Details, _Peer) ->
+maybe_create_session({ok, Realm}, RealmName, Details, Peer) ->
+    {ok, Session} = ctr_sessions:create_new_session(RealmName, Peer),
+    {ok, Realm} = ctr_realms:lookup(RealmName),
+    AuthMethod = get_auth_method(Realm, Details),
+    {ok, Session, AuthMethod};
+maybe_create_session(_Result, _RealmName, _Details, _Peer) ->
     {error, no_such_realm}.
 
 
-get_auth_type(_, _) ->
+get_auth_method(_, _) ->
     anonymous.
+
 
 send_welcome_challenge_or_abort({ok, Session, anonymous}, _, Peer) ->
     #{id := SessionId} = ctr_session:to_map(Session),

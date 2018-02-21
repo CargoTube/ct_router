@@ -10,11 +10,19 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, noparams).
 
 init(noparams) ->
-    Procs = [sessions_worker()],
+    Procs = [
+             realms_worker(),
+             sessions_worker()
+            ],
     Flags = #{},
     {ok, {Flags, Procs}}.
 
 sessions_worker() ->
     #{ id => sessions,
        start => {ctr_sessions, start_link, []}
+     }.
+
+realms_worker() ->
+    #{ id => realms,
+       start => {ctr_realms, start_link, []}
      }.
