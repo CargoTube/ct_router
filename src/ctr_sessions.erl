@@ -110,7 +110,7 @@ delete_if_exists([{Id, Session}]) ->
 
 do_list_sessions() ->
     ets:safe_fixtable(?MODULE, true),
-    First = ets:first(),
+    First = ets:first(?MODULE),
     print_session_or_exit(First).
 
 print_session_or_exit('$end_of_table') ->
