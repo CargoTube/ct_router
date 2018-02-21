@@ -7,6 +7,8 @@
          close_session/1,
          lookup_session/1,
 
+         list_sessions/0,
+
          start_link/0,
          init/1,
          handle_call/3,
@@ -32,6 +34,10 @@ close_session(#{id := SessionId}) ->
 lookup_session(IdOrPeer) ->
     to_tagged_result(ets:lookup(?MODULE, IdOrPeer)).
 
+list_sessions() ->
+    gen_server:call(?MODULE, list_sessions).
+
+
 -spec start_link() -> {ok, pid()}.
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, no_parameter, []).
@@ -49,6 +55,9 @@ handle_call({update_session, Session}, _From, State) ->
 handle_call({new_session, PeerAtGate}, _From, State) ->
     Result = create_new_session(PeerAtGate),
     {reply, Result, State};
+handle_call(list_sessions, _From, State) ->
+    do_list_sessions(),
+    {reply, ok, State};
 handle_call(_Msg, _From, State) ->
     {reply, ignored, State}.
 
@@ -98,6 +107,21 @@ delete_if_exists([{Id, Session}]) ->
     true = ets:delete(?MODULE, Id),
     true = ets:delete(?MODULE, Peer),
     ok.
+
+do_list_sessions() ->
+    ets:safe_fixtable(?MODULE, true),
+    First = ets:first(),
+    print_session_or_exit(First).
+
+print_session_or_exit('$end_of_table') ->
+    ets:safe_fixtable(?MODULE, false),
+    ok;
+print_session_or_exit(Entry) ->
+    lager:debug(io_lib:format("~p~", Entry)),
+    Next = ets:next(?MODULE, Entry),
+    print_session_or_exit(Next).
+
+
 
 create_table() ->
     ets:new(?MODULE, [named_table, {keypos, 1}, set, protected, {heir, none}]),
