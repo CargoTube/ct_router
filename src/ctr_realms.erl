@@ -44,14 +44,14 @@ init(no_parameter) ->
     create_table(),
     {ok, #state{}}.
 
-handle_call({close_session, SessionId}, _From, State) ->
-    Result = do_close_realm(SessionId),
+handle_call({close_realm, Realm}, _From, State) ->
+    Result = do_close_realm(Realm),
     {reply, Result, State};
-handle_call({update_session, Session}, _From, State) ->
-    Result = do_update_realm(Session),
+handle_call({update_realm, Realm}, _From, State) ->
+    Result = do_update_realm(Realm),
     {reply, Result, State};
-handle_call({new_session, PeerAtGate}, _From, State) ->
-    Result = create_new_realm(PeerAtGate),
+handle_call({new_realm, RealmName}, _From, State) ->
+    Result = create_new_realm(RealmName),
     {reply, Result, State};
 handle_call(list_realms, _From, State) ->
     do_list_realms(),
