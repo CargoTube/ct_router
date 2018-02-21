@@ -19,7 +19,7 @@ handle_authenticate(_Authenticate, PeerAtGate) ->
 
 maybe_create_session({ok, Realm}, RealmName, Details, Peer) ->
     {ok, Session} = ctr_sessions:create_new_session(RealmName, Peer),
-    {ok, Realm} = ctr_realms:lookup(RealmName),
+    {ok, Realm} = ctr_realms:lookup_realm(RealmName),
     AuthMethod = get_auth_method(Realm, Details),
     {ok, Session, AuthMethod};
 maybe_create_session(_Result, _RealmName, _Details, _Peer) ->
