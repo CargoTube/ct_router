@@ -112,9 +112,10 @@ do_list_realms() ->
 print_realm_or_exit('$end_of_table') ->
     true = ets:safe_fixtable(?MODULE, false),
     ok;
-print_realm_or_exit({_, Realm} = Entry) ->
-    lager:debug(io_lib:format("~p", Realm)),
-    Next = ets:next(?MODULE, Entry),
+print_realm_or_exit(Key) ->
+    [{Key, Realm}] = ets:lookup(?MODULE, Key),
+    lager:debug("~p", [Realm]),
+    Next = ets:next(?MODULE, Key),
     print_realm_or_exit(Next).
 
 

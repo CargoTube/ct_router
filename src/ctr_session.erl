@@ -1,6 +1,6 @@
 -module(ctr_session).
 
--export([new/2,
+-export([new/3,
          authenticate/1,
          to_map/1
         ]).
@@ -16,8 +16,8 @@
                   peer_at_gate = undefined
                  }).
 
-new(Id, PeerAtGate)  ->
-    #session{ id = Id, peer_at_gate = PeerAtGate }.
+new(Id, RealmName, PeerAtGate)  ->
+    #session{ id = Id, realm = RealmName, peer_at_gate = PeerAtGate }.
 
 authenticate(Session) ->
    Session#session{authenticated = true}.

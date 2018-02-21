@@ -3,7 +3,6 @@
 -export([handle_hello/2,
         handle_authenticate/2]).
 
-
 -include_lib("ct_msg/include/ct_msg.hrl").
 
 handle_hello({hello, RealmName, Details}, Peer) ->
@@ -18,7 +17,7 @@ handle_authenticate(_Authenticate, PeerAtGate) ->
 
 
 maybe_create_session({ok, Realm}, RealmName, Details, Peer) ->
-    {ok, Session} = ctr_sessions:create_new_session(RealmName, Peer),
+    {ok, Session} = ctr_sessions:new_session(RealmName, Peer),
     AuthMethod = get_auth_method(Realm, Details),
     {ok, Session, AuthMethod};
 maybe_create_session(_Result, _RealmName, _Details, _Peer) ->
