@@ -12,7 +12,7 @@ handle_hello({hello, RealmName, Details}, Peer) ->
 
 
 handle_authenticate(_Authenticate, PeerAtGate) ->
-    PeerAtGate ! {to_peer, ?ABORT(#{}, canceled)},
+    ct_router:to_peer(PeerAtGate ,{to_peer, ?ABORT(#{}, canceled)}),
     ok.
 
 
@@ -25,21 +25,20 @@ maybe_create_session(_Result, _RealmName, _Details, _Peer) ->
 
 
 get_auth_method(_, _) ->
-    anonymous.
+    none.
 
 
-send_welcome_challenge_or_abort({ok, Session, anonymous}, _, Peer) ->
+send_welcome_challenge_or_abort({ok, Session, none}, _, Peer) ->
     #{id := SessionId} = ctr_session:to_map(Session),
-    Peer ! {session, SessionId},
-    Peer ! {to_peer, ?WELCOME( SessionId, #{})},
+    ct_router:to_peer(Peer, {to_peer, ?WELCOME( SessionId, #{})}),
     ok;
 send_welcome_challenge_or_abort({ok, _Session, wampcra}, _, _Peer) ->
     %% TODO: implement
     ok;
 send_welcome_challenge_or_abort({error, no_such_realm}, _, PeerAtGate) ->
-    PeerAtGate ! {to_peer, ?ABORT(#{}, no_such_realm)},
+    ct_router:to_peer(PeerAtGate, {to_peer, ?ABORT(#{}, no_such_realm)}),
     ok;
 send_welcome_challenge_or_abort(_, _, PeerAtGate) ->
     %% by default cancel the session
-    PeerAtGate ! {to_peer, ?ABORT(#{}, canceled)},
+    ct_router:to_peer(PeerAtGate, {to_peer, ?ABORT(#{}, canceled)}),
     ok.
