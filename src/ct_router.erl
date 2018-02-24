@@ -30,7 +30,7 @@ handle_session_closed(SessionId, PeerAtGate) ->
     ok.
 
 get_session(SessionId, PeerAtGate) ->
-    {ok, Session} = ctr_sessions:lookup(SessionId),
+    {ok, Session} = ctr_sessions:lookup_session(SessionId),
     PeerAtGate = ctr_session:get_peer(Session),
     Session.
 
