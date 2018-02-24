@@ -26,13 +26,17 @@ handle_established(Type, Message, SessionId, PeerAtGate) ->
 
 handle_session_closed(SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
-    ctr_sessions:close_session(Session),
+    close_session(Session),
     ok.
 
 get_session(SessionId, PeerAtGate) ->
     {ok, Session} = ctr_sessions:lookup_session(SessionId),
     PeerAtGate = ctr_session:get_peer(Session),
     Session.
+
+close_session(Session) ->
+    SessionId = ctr_session:get_id(Session),
+    ctr_sessions:close_session(SessionId).
 
 
 to_peer(PeerAtGate, Message) ->

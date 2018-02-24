@@ -6,6 +6,7 @@
 
          is_authenticated/1,
          get_peer/1,
+         get_id/1,
          get_realm/1
         ]).
 
@@ -31,6 +32,9 @@ is_authenticated(#session{authenticated = IsAuth}) ->
 
 get_peer(#session{peer_at_gate = PeerAtGate}) ->
     PeerAtGate.
+
+get_id(#session{id = Id}) ->
+    Id.
 
 get_realm(#session{realm = Realm}) ->
     Realm.
