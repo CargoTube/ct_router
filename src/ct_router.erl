@@ -7,7 +7,9 @@
          handle_hello/2,
          handle_authenticate/3,
          handle_established/4,
-         handle_session_closed/2
+         handle_session_closed/2,
+
+         to_peer/2
         ]).
 
 
@@ -29,3 +31,7 @@ handle_session_closed(SessionId, _PeerAtGate) ->
 
 get_session(SessionId) ->
     ctr_sessions:lookup(SessionId).
+
+to_peer(PeerAtGate, Message) ->
+    lager:debug("[~p] ~p ! ~p", [self(), PeerAtGate, Message]),
+    PeerAtGate  ! Message.
