@@ -21,7 +21,7 @@ maybe_handle_message(true, _, Type, Message, Session) ->
     send_auth_error(Type, Message, Session);
 maybe_handle_message(_, _, _Type, Message, Session) ->
     lager:debug("routing: NOT AUTHED! ~p [~p]", [Message, Session]),
-    ct_router:to_peer(ctr_session:get_peer(Session), ?GOODBYE(#{}, canceled)).
+    send_to_peer(Session, ?GOODBYE(#{}, canceled)).
 
 
 handle_message(Type, Message, Session) ->
@@ -34,4 +34,4 @@ send_auth_error(Type, Message, Session) ->
     send_to_peer(Session, Msg).
 
 send_to_peer(Session, Msg) ->
-    ct_router:to_peer(ctr_session:get_peer(Session), Msg).
+    ct_router:to_peer(ctr_session:get_peer(Session), {to_peer, Msg}).

@@ -35,15 +35,18 @@ get_auth_method(_, _) ->
 
 send_welcome_challenge_or_abort({ok, Session, none}, _, Peer) ->
     #{id := SessionId} = ctr_session:to_map(Session),
-    ct_router:to_peer(Peer, {to_peer, ?WELCOME( SessionId, #{})}),
+    send_to_peer(Peer, ?WELCOME( SessionId, #{})),
     ok;
 send_welcome_challenge_or_abort({ok, _Session, wampcra}, _, _Peer) ->
     %% TODO: implement
     ok;
 send_welcome_challenge_or_abort({error, no_such_realm}, _, PeerAtGate) ->
-    ct_router:to_peer(PeerAtGate, {to_peer, ?ABORT(#{}, no_such_realm)}),
+    send_to_peer(PeerAtGate, ?ABORT(#{}, no_such_realm)),
     ok;
 send_welcome_challenge_or_abort(_, _, PeerAtGate) ->
     %% by default cancel the session
-    ct_router:to_peer(PeerAtGate, {to_peer, ?ABORT(#{}, canceled)}),
+    send_to_peer(PeerAtGate, ?ABORT(#{}, canceled)),
     ok.
+
+send_to_peer(Peer, Message) ->
+    ct_router:to_peer(Peer, {to_peer, Message}).
