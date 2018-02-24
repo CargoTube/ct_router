@@ -1,7 +1,9 @@
 -module(ctr_auth).
 
 -export([handle_hello/2,
-        handle_authenticate/2]).
+         handle_authenticate/2,
+         is_message_allowed/2
+        ]).
 
 -include_lib("ct_msg/include/ct_msg.hrl").
 
@@ -15,6 +17,9 @@ handle_authenticate(_Authenticate, PeerAtGate) ->
     ct_router:to_peer(PeerAtGate ,{to_peer, ?ABORT(#{}, canceled)}),
     ok.
 
+is_message_allowed(_Message, _Session) ->
+    %% TODO: implement
+    true.
 
 maybe_create_session({ok, Realm}, RealmName, Details, Peer) ->
     {ok, Session} = ctr_sessions:new_session(RealmName, Peer),
