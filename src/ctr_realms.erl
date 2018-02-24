@@ -74,7 +74,7 @@ terminate(_Reason, _State) ->
 create_new_realm(Name) ->
     Realm = ctr_realm:new(Name),
     Result = ets:insert_new(?MODULE, {Name, Realm}),
-    to_creation_result(Result).
+    to_creation_result(Result, Name).
 
 
 do_update_realm(Realm) ->
@@ -87,9 +87,10 @@ to_tagged_result([]) ->
 to_tagged_result([{_, Session}]) ->
     {ok, Session}.
 
-to_creation_result(true) ->
+to_creation_result(true, Realm) ->
+    lager:debug("realms: created realm ~p", [Realm]),
     ok;
-to_creation_result(false) ->
+to_creation_result(false, _) ->
     {error, exists}.
 
 do_close_realm(Realm) ->
@@ -99,7 +100,8 @@ do_close_realm(Realm) ->
 
 delete_if_exists([]) ->
     {error, not_found};
-delete_if_exists([{Id, _Realm}]) ->
+delete_if_exists([{Id, Realm}]) ->
+    lager:debug("realms: delete realm ~p", [Realm]),
     true = ets:delete(?MODULE, Id),
     %% TODO: close all related sessions
     ok.
