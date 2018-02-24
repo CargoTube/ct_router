@@ -80,11 +80,13 @@ create_new_session(RealmName, PeerAtGate) ->
     maybe_rerun_session_creation(Result, Session, RealmName, PeerAtGate).
 
 maybe_rerun_session_creation(true, Session, _RealmName, _PeerAtGate) ->
+    lager:debug("sessions: created session ~p",[Session]),
     {ok, Session};
 maybe_rerun_session_creation(false, _Session, RealmName, PeerAtGate) ->
     create_new_session(RealmName, PeerAtGate).
 
 do_update_session(Session) ->
+    lager:debug("sessions: update session ~p",[Session]),
     #{id := Id, peer := PeerAtGate} = ctr_session:to_map(Session),
     true = ets:insert(?MODULE, {Id, Session}),
     true = ets:insert(?MODULE, {PeerAtGate, Session}),
@@ -96,6 +98,7 @@ to_tagged_result([{_, Session}]) ->
     {ok, Session}.
 
 do_close_session(SessionId) ->
+    lager:debug("sessions: try closing session ~p",[SessionId]),
     Session = ets:lookup(?MODULE, SessionId),
     delete_if_exists(Session).
 
@@ -105,6 +108,7 @@ delete_if_exists([{Id, Session}]) ->
     #{peer := Peer} = ctr_session:to_map(Session),
     true = ets:delete(?MODULE, Id),
     true = ets:delete(?MODULE, Peer),
+    lager:debug("sessions: session ~p deleted",[Session]),
     ok.
 
 do_list_sessions() ->
