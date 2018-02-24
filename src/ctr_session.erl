@@ -2,7 +2,11 @@
 
 -export([new/3,
          authenticate/1,
-         to_map/1
+         to_map/1,
+
+         is_authenticated/1,
+         get_peer/1,
+         get_realm/1
         ]).
 
 
@@ -21,6 +25,15 @@ new(Id, RealmName, PeerAtGate)  ->
 
 authenticate(Session) ->
    Session#session{authenticated = true}.
+
+is_authenticated(#session{authenticated = IsAuth}) ->
+    IsAuth.
+
+get_peer(#session{peer_at_gate = PeerAtGate}) ->
+    PeerAtGate.
+
+get_realm(#session{realm = Realm}) ->
+    Realm.
 
 to_map(#session{id = Id, realm = Realm, authid = AuthId, authrole = Role,
                authenticated = Authenticated, peer_at_gate = PeerAtGate}) ->
