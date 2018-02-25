@@ -28,10 +28,12 @@ handle_message(Type, Message, Session) ->
     send_auth_error(Type, Message, Session).
 
 send_auth_error(Type, Message, Session) ->
-    lager:debug("routing: auth error ~p [~p]", [Message, Session]),
+    lager:debug("routing: ~p not authed ~p", [ctr_session:get_peer(Session),
+                                              Message]),
     {ok, RequestId} = ct_msg:get_request_id(Message),
     Msg = ?ERROR(Type, RequestId, #{}, not_authorized),
     send_to_peer(Session, Msg).
+
 
 send_to_peer(Session, Msg) ->
     ct_router:to_peer(ctr_session:get_peer(Session), {to_peer, Msg}).
