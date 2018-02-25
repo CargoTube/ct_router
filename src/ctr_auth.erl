@@ -28,7 +28,7 @@ maybe_create_session({ok, Realm}, Details, Peer) ->
     RealmName = ctr_realm:get_name(Realm),
     {ok, Session} = ctr_sessions:new_session(RealmName, Peer),
     AuthMethod = get_auth_method(Realm, Details),
-    lager:debug("auth: ~p authmethod ~p",[AuthMethod]),
+    lager:debug("auth: ~p authmethod ~p",[Peer, AuthMethod]),
     {ok, Session, AuthMethod, Realm};
 maybe_create_session(_Result, _Details, Peer) ->
     lager:debug("auth: ~p no realm",[Peer]),

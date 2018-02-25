@@ -24,7 +24,7 @@ get_role(AuthId, #realm{authmapping = Mapping}) ->
     Result = lists:keyfind(AuthId, 1, Mapping),
     return_role(Result).
 
-return_role([{_, Role}]) ->
+return_role({_, Role}) ->
     {ok, Role};
 return_role(_) ->
     {error, not_found}.
