@@ -70,9 +70,10 @@ get_client_authmethods(Details, _) ->
 
 send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, Peer) ->
     lager:debug("auth: ~p anonymous login",[Peer]),
-    ctr_session:set_auth_details(anonymous, anonymous, anonymous, Session),
+    NewSession = ctr_session:set_auth_details(anonymous, anonymous, anonymous
+                                             , Session),
     RoleResult = ctr_realm:get_role(anonymous, Realm),
-    maybe_authenticate_session(RoleResult, Session);
+    maybe_authenticate_session(RoleResult, NewSession);
 send_welcome_challenge_or_abort({error, no_such_realm}, PeerAtGate) ->
     send_abort(PeerAtGate, no_such_realm);
 send_welcome_challenge_or_abort({ok, Session, _, _}, _PeerAtGate) ->
@@ -81,9 +82,9 @@ send_welcome_challenge_or_abort( _, PeerAtGate) ->
     send_abort(PeerAtGate, canceled).
 
 maybe_authenticate_session({ok, Role}, Session) ->
-    ctr_session:authenticate(Role, Session),
-    SessionId = ctr_session:get_id(Session),
-    Peer = ctr_session:get_peer(Session),
+    NewSession = ctr_session:authenticate(Role, Session),
+    SessionId = ctr_session:get_id(NewSession),
+    Peer = ctr_session:get_peer(NewSession),
     lager:debug("auth: ~p anonymous as role ~p ",[Peer, Role]),
     send_to_peer(Peer, ?WELCOME( SessionId, #{})),
     ok;
