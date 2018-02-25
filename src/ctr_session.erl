@@ -1,13 +1,15 @@
 -module(ctr_session).
 
 -export([new/3,
-         authenticate/1,
-         to_map/1,
+         set_auth_details/4,
+         authenticate/2,
 
-         is_authenticated/1,
          get_peer/1,
          get_id/1,
-         get_realm/1
+         get_realm/1,
+
+         is_authenticated/1,
+         get_authrole/1
         ]).
 
 
@@ -24,8 +26,21 @@
 new(Id, RealmName, PeerAtGate)  ->
     #session{ id = Id, realm = RealmName, peer_at_gate = PeerAtGate }.
 
-authenticate(Session) ->
-   Session#session{authenticated = true}.
+set_auth_details(AuthId, AuthMethod, AuthProvider, Session) ->
+    NewSession = Session#session{ authid = AuthId,
+                                  authmethod = AuthMethod,
+                                  authprovider = AuthProvider},
+    {ok, Result} = ctr_sessions:update_session(NewSession),
+    Result.
+
+
+authenticate(AuthRole, Session) ->
+    NewSession = Session#session{
+                   authrole = AuthRole,
+                   authenticated = true
+                  },
+    {ok, Result} = ctr_sessions:update_session(NewSession),
+    Result.
 
 is_authenticated(#session{authenticated = IsAuth}) ->
     IsAuth.
@@ -39,12 +54,5 @@ get_id(#session{id = Id}) ->
 get_realm(#session{realm = Realm}) ->
     Realm.
 
-to_map(#session{id = Id, realm = Realm, authid = AuthId, authrole = Role,
-               authenticated = Authenticated, peer_at_gate = PeerAtGate}) ->
-    #{id => Id,
-      realm => Realm,
-      authid => AuthId,
-      role => Role,
-      is_auth => Authenticated,
-      peer => PeerAtGate
-     }.
+get_authrole(#session{authrole = Role}) ->
+    Role.

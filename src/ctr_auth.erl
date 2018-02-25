@@ -9,8 +9,8 @@
 
 handle_hello({hello, RealmName, Details}, Peer) ->
     Result = ctr_realms:lookup_realm(RealmName),
-    SessionResult = maybe_create_session(Result, RealmName, Details, Peer),
-    send_welcome_challenge_or_abort(SessionResult, RealmName, Peer).
+    SessionResult = maybe_create_session(Result, Details, Peer),
+    send_welcome_challenge_or_abort(SessionResult, Peer).
 
 
 handle_authenticate(_Authenticate, PeerAtGate) ->
@@ -21,32 +21,81 @@ is_message_allowed(_Message, _Session) ->
     %% TODO: implement
     true.
 
-maybe_create_session({ok, Realm}, RealmName, Details, Peer) ->
+maybe_create_session({ok, Realm}, Details, Peer) ->
+    RealmName = ctr_realm:get_name(Realm),
     {ok, Session} = ctr_sessions:new_session(RealmName, Peer),
     AuthMethod = get_auth_method(Realm, Details),
-    {ok, Session, AuthMethod};
-maybe_create_session(_Result, _RealmName, _Details, _Peer) ->
+    {ok, Session, AuthMethod, Realm};
+maybe_create_session(_Result, _Details, _Peer) ->
     {error, no_such_realm}.
 
 
-get_auth_method(_, _) ->
-    none.
+get_auth_method(Realm, Details) ->
+    AuthId = maps:get(authid, Details, undefined),
+    AuthMethods = get_client_authmethods(Details, AuthId),
+    RealmMethods = ctr_realm:get_auth_methods(Realm),
+
+    ToAtom =
+        fun(Method, List) ->
+                try
+                    [ binary_to_existing_atom(Method, utf8) | List ]
+                catch _:_ ->
+                        List
+                end
+        end,
+    ClientSupported = lists:foldl(ToAtom, [], AuthMethods),
+
+    FindBestMethod =
+        fun(Method, Current) ->
+                case lists:member(Method, ClientSupported) of
+                    true ->
+                        Method;
+                    false ->
+                        Current
+                end
+        end,
+    lists:foldr(FindBestMethod, none, RealmMethods).
 
 
-send_welcome_challenge_or_abort({ok, Session, none}, _, Peer) ->
-    #{id := SessionId} = ctr_session:to_map(Session),
+get_client_authmethods(Details, undefined) ->
+    maps:get(authmethods, Details, [anonymous]);
+get_client_authmethods(Details, _) ->
+    maps:get(authmethods, Details, []).
+
+
+send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, _Peer) ->
+    ctr_session:set_auth_details(anonymous, anonymous, anonymous, Session),
+    RoleResult = ctr_realm:get_role(anonymous, Realm),
+    maybe_authenticate_session(RoleResult, Session);
+%% send_welcome_challenge_or_abort({ok, _Session, wampcra, _Realm}, _Peer) ->
+%%     %% TODO: implement
+%%     ok;
+send_welcome_challenge_or_abort({error, no_such_realm}, PeerAtGate) ->
+    send_abort(PeerAtGate, no_such_realm);
+send_welcome_challenge_or_abort({ok, Session, _, _}, _PeerAtGate) ->
+    abort_session(Session);
+send_welcome_challenge_or_abort( _, PeerAtGate) ->
+    send_abort(PeerAtGate, canceled).
+
+maybe_authenticate_session({ok, Role}, Session) ->
+    ctr_session:authenticate(Role, Session),
+    SessionId = ctr_session:get_id(Session),
+    Peer = ctr_session:get_peer(Session),
     send_to_peer(Peer, ?WELCOME( SessionId, #{})),
     ok;
-send_welcome_challenge_or_abort({ok, _Session, wampcra}, _, _Peer) ->
-    %% TODO: implement
-    ok;
-send_welcome_challenge_or_abort({error, no_such_realm}, _, PeerAtGate) ->
-    send_to_peer(PeerAtGate, ?ABORT(#{}, no_such_realm)),
-    ok;
-send_welcome_challenge_or_abort(_, _, PeerAtGate) ->
-    %% by default cancel the session
-    send_to_peer(PeerAtGate, ?ABORT(#{}, canceled)),
+maybe_authenticate_session(_, Session) ->
+    abort_session(Session).
+
+
+abort_session(Session) ->
+    Peer = ctr_session:get_peer(Session),
+    ok = ctr_sesssions:close_session(Session),
+    send_abort(Peer, canceled).
+
+send_abort(Peer, Reason) ->
+    send_to_peer(Peer, ?ABORT(#{}, Reason)),
     ok.
+
 
 send_to_peer(Peer, Message) ->
     ct_router:to_peer(Peer, {to_peer, Message}).

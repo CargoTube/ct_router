@@ -28,7 +28,8 @@ update_session(Session) ->
 
 close_session(SessionId) when is_integer(SessionId) ->
     gen_server:call(?MODULE, {close_session, SessionId});
-close_session(#{id := SessionId}) ->
+close_session(Session) ->
+    SessionId = ctr_session:get_id(Session),
     close_session(SessionId).
 
 lookup_session(IdOrPeer) ->
@@ -86,11 +87,18 @@ maybe_rerun_session_creation(false, _Session, RealmName, PeerAtGate) ->
     create_new_session(RealmName, PeerAtGate).
 
 do_update_session(Session) ->
+    Id = ctr_session:get_id(Session),
+    PeerAtGate = ctr_session:get_peer(Session),
+    Exists = ets:member(?MODULE, Id),
+    update_if_exist(Exists, Id, PeerAtGate, Session).
+
+update_if_exist(true, Id, PeerAtGate, Session) ->
+    true = ets:insert(?MODULE, [{Id, Session}, {PeerAtGate, Session}]),
     lager:debug("sessions: update session ~p",[Session]),
-    #{id := Id, peer := PeerAtGate} = ctr_session:to_map(Session),
-    true = ets:insert(?MODULE, {Id, Session}),
-    true = ets:insert(?MODULE, {PeerAtGate, Session}),
-    ok.
+    {ok, Session};
+update_if_exist(_, _Id, _PeerAtGate, Session) ->
+    lager:debug("sessions: update failed ~p",[Session]),
+    {error, doesnt_exist}.
 
 to_tagged_result([]) ->
     {error, not_found};
@@ -105,7 +113,7 @@ do_close_session(SessionId) ->
 delete_if_exists([]) ->
     {error, not_found};
 delete_if_exists([{Id, Session}]) ->
-    #{peer := Peer} = ctr_session:to_map(Session),
+    Peer = ctr_session:get_peer(Session),
     true = ets:delete(?MODULE, Id),
     true = ets:delete(?MODULE, Peer),
     lager:debug("sessions: session ~p deleted",[Session]),
