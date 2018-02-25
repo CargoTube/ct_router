@@ -28,6 +28,7 @@ maybe_create_session({ok, Realm}, Details, Peer) ->
     RealmName = ctr_realm:get_name(Realm),
     {ok, Session} = ctr_sessions:new_session(RealmName, Peer),
     AuthMethod = get_auth_method(Realm, Details),
+    lager:debug("auth: ~p authmethod ~p",[AuthMethod]),
     {ok, Session, AuthMethod, Realm};
 maybe_create_session(_Result, _Details, Peer) ->
     lager:debug("auth: ~p no realm",[Peer]),
@@ -35,7 +36,7 @@ maybe_create_session(_Result, _Details, Peer) ->
 
 
 get_auth_method(Realm, Details) ->
-    AuthId = maps:get(authid, Details, undefined),
+    AuthId = maps:get(<<"authid">>, Details, undefined),
     AuthMethods = get_client_authmethods(Details, AuthId),
     RealmMethods = ctr_realm:get_auth_methods(Realm),
 
@@ -62,9 +63,9 @@ get_auth_method(Realm, Details) ->
 
 
 get_client_authmethods(Details, undefined) ->
-    maps:get(authmethods, Details, [anonymous]);
+    maps:get(<<"authmethods">>, Details, [<<"anonymous">>]);
 get_client_authmethods(Details, _) ->
-    maps:get(authmethods, Details, []).
+    maps:get(<<"authmethods">>, Details, []).
 
 
 send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, Peer) ->
