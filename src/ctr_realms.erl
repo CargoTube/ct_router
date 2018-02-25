@@ -2,7 +2,7 @@
 -behaviour(gen_server).
 
 -export([
-         new_realm/1,
+         new_realm/3,
          update_realm/1,
          close_realm/1,
          lookup_realm/1,
@@ -20,8 +20,8 @@
 
 -record(state, {}).
 
-new_realm(Name) when is_binary(Name) ->
-    gen_server:call(?MODULE, {new_realm, Name}).
+new_realm(Name, AuthMethods, AuthMapping) when is_binary(Name) ->
+    gen_server:call(?MODULE, {new_realm, Name, AuthMethods, AuthMapping}).
 
 update_realm(Realm) ->
     gen_server:call(?MODULE, {update_realm, Realm}).
@@ -50,8 +50,8 @@ handle_call({close_realm, Realm}, _From, State) ->
 handle_call({update_realm, Realm}, _From, State) ->
     Result = do_update_realm(Realm),
     {reply, Result, State};
-handle_call({new_realm, RealmName}, _From, State) ->
-    Result = create_new_realm(RealmName),
+handle_call({new_realm, RealmName, AuthMethods, AuthMapping}, _From, State) ->
+    Result = create_new_realm(RealmName, AuthMethods, AuthMapping),
     {reply, Result, State};
 handle_call(list_realms, _From, State) ->
     do_list_realms(),
@@ -71,8 +71,8 @@ code_change(_OldVsn, State, _Extra) ->
 terminate(_Reason, _State) ->
     ok.
 
-create_new_realm(Name) ->
-    Realm = ctr_realm:new(Name),
+create_new_realm(Name, AuthMethods, AuthMapping) ->
+    Realm = ctr_realm:new(Name, AuthMethods, AuthMapping),
     Result = ets:insert_new(?MODULE, {Name, Realm}),
     to_creation_result(Result, Name).
 
