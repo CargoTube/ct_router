@@ -89,7 +89,7 @@ maybe_authenticate_session(_, Session) ->
 
 abort_session(Session) ->
     Peer = ctr_session:get_peer(Session),
-    ok = ctr_sesssions:close_session(Session),
+    ok = ctr_sessions:close_session(Session),
     send_abort(Peer, canceled).
 
 send_abort(Peer, Reason) ->
