@@ -49,7 +49,7 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
 
     Subscribe =
         fun() ->
-                case mnesia:select(subscription, MatchSpec) of
+                case mnesia:select(ctr_subscription, MatchSpec) of
                     [#ctr_subscription{id = Id,
                                    subscribers = Subs } = Subscription] ->
                         NewSubs = [ PeerAtGate |
@@ -61,7 +61,7 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
                               ),
                         {added, Id};
                     [] ->
-                        case mnesia:wread({subscription, NewId}) of
+                        case mnesia:wread({ctr_subscription, NewId}) of
                             [] ->
                                 ok = mnesia:write(NewSub),
                                 {created, NewSub};

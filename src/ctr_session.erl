@@ -82,7 +82,7 @@ get_authrole(#ctr_session{authrole = Role}) ->
 
 lookup_by_id(Id) ->
     Lookup = fun() ->
-                     case mnesia:read({session, Id}) of
+                     case mnesia:read({ctr_session, Id}) of
                          [Session] ->
                              {ok, Session};
                          [] ->
@@ -96,7 +96,7 @@ lookup_by_id(Id) ->
 
 try_saving_session(#ctr_session{id = Id} = Session, New) ->
     Store = fun(true) ->
-                    case mnesia:wread({session, Id}) of
+                    case mnesia:wread({ctr_session, Id}) of
                         [] ->
                             ok = mnesia:write(Session),
                             {ok, Session};
@@ -122,9 +122,9 @@ maybe_retry_saving_session(Other, Session, New) ->
 
 delete_by_id(Id) ->
     Delete = fun() ->
-                     case mnesia:wread({session, Id}) of
+                     case mnesia:wread({ctr_session, Id}) of
                          [_] ->
-                             mnesia:delete({session, Id});
+                             mnesia:delete({ctr_session, Id});
                          [] ->
                              {error, not_found}
                      end
