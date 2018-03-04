@@ -82,18 +82,19 @@ do_publish(_, _) ->
 
 handle_subscribe_result({atomic, {added, SubId}}, Msg, Session) ->
     %% TODO: meta events
-    RequestId = ct_msg:get_request_id(Msg),
-    ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
-    ok;
+    send_subscribed(Msg, SubId, Session);
 handle_subscribe_result({atomic, {created, Subscription}}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     %% TODO: meta events
-    RequestId = ct_msg:get_request_id(Msg),
-    ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
-    ok;
+    send_subscribed(Msg,SubId, Session);
 handle_subscribe_result({atomic, {error, id_exists}}, Msg, Session) ->
     do_subscribe(Msg, Session).
 
+
+send_subscribed(Msg, SubId, Session) ->
+    {ok, RequestId} = ct_msg:get_request_id(Msg),
+    ok = ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
+    ok.
 
 
 create_table() ->
