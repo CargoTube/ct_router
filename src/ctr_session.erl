@@ -5,6 +5,9 @@
 
          set_auth_details/4,
          authenticate/2,
+         add_subscription/2,
+         has_subscription/2,
+         remove_subscription/2,
 
          get_peer/1,
          get_id/1,
@@ -20,15 +23,17 @@
 
 
 -record(ctr_session, {id = undefined,
-                  realm = undefined,
-                  details = #{},
-                  authid = undefined,
-                  authrole = undefined,
-                  authprovider = undefined,
-                  authmethod = undefined,
-                  authenticated = false,
-                  peer_at_gate = undefined
-                 }).
+                      realm = undefined,
+                      details = #{},
+                      authid = undefined,
+                      authrole = undefined,
+                      authprovider = undefined,
+                      authmethod = undefined,
+                      authenticated = false,
+                      subscriptions = [],
+                      registrations = [],
+                      peer_at_gate = undefined
+                     }).
 
 init() ->
     create_table().
@@ -63,6 +68,20 @@ authenticate(AuthRole, Session) ->
                    authenticated = true
                   },
 
+    try_saving_session(NewSession, false).
+
+
+add_subscription(SubId, #ctr_session{subscriptions = Subs} = Session) ->
+    NewSubs = [ SubId | lists:delete(SubId, Subs) ],
+    NewSession = Session#ctr_session{ subscriptions = NewSubs },
+    try_saving_session(NewSession, false).
+
+has_subscription(SubId, #ctr_session{subscriptions = Subs}) ->
+    lists:member(SubId, Subs).
+
+remove_subscription(SubId, #ctr_session{subscriptions = Subs} = Session) ->
+    NewSubs = lists:delete(SubId, Subs),
+    NewSession = Session#ctr_session{ subscriptions = NewSubs },
     try_saving_session(NewSession, false).
 
 is_authenticated(#ctr_session{authenticated = IsAuth}) ->
