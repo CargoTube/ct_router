@@ -21,19 +21,23 @@ maybe_handle_message(true, _, Type, Message, Session) ->
     send_auth_error(Type, Message, Session);
 maybe_handle_message(_, _, _Type, Message, Session) ->
     lager:debug("routing: NOT AUTHED! ~p [~p]", [Message, Session]),
-    send_to_peer(Session, ?GOODBYE(#{}, canceled)).
+    ct_router:to_session(Session, ?GOODBYE(#{}, canceled)).
 
 
+handle_message(Type, Message, Session)
+  when Type == subscribe; Type == unsubscribe; Type == publish  ->
+    ctr_broker:handle_message(Type, Message, Session);
+%% handle_message(Type, Message, Session)
+%%   when Type == call; Type == register; Type == unregister;
+%%        Type == yield ->
+%%     ctr_dealer:handle_message(Type, Message, Session);
 handle_message(Type, Message, Session) ->
+    lager:debug("routing: ~p unsupported type ~p", [ctr_session:get_peer(Session),
+                                              Message]),
     send_auth_error(Type, Message, Session).
 
 send_auth_error(Type, Message, Session) ->
     lager:debug("routing: ~p not authed ~p", [ctr_session:get_peer(Session),
                                               Message]),
-    {ok, RequestId} = ct_msg:get_request_id(Message),
-    Msg = ?ERROR(Type, RequestId, #{}, not_authorized),
-    send_to_peer(Session, Msg).
-
-
-send_to_peer(Session, Msg) ->
-    ct_router:to_peer(ctr_session:get_peer(Session), {to_peer, Msg}).
+    {ok, ReqId} = ct_msg:get_request_id(Message),
+    ct_router:to_session(Session, ?ERROR(Type, ReqId, #{}, not_authorized)).
