@@ -108,7 +108,7 @@ try_saving_session(#session{id = Id} = Session, New) ->
     Result = mnesia:transaction(Store, [New]),
     maybe_retry_saving_session(Result, Session, New).
 
-maybe_retry_saving_session({atomic, ok}, Session, _) ->
+maybe_retry_saving_session({atomic, {ok, Session}}, _, _) ->
     {ok, Session};
 maybe_retry_saving_session({atomic, {error, exists}}, Session, true) ->
     Id = ctr_utils:gen_global_id(),
