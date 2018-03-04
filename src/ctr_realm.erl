@@ -95,6 +95,7 @@ delete_by_name(Name) ->
 
 
 create_table() ->
+    {atomic, ok} = mnesia:delete_table(realm),
     TabDef = [{attributes, record_info(fields, realm)},
               {ram_copies, [node()]},
               {index, []}

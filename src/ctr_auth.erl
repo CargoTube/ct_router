@@ -26,7 +26,7 @@ is_message_allowed(_Message, _Session) ->
 maybe_create_session({ok, Realm}, Details, Peer) ->
     lager:debug("auth: ~p realm ok",[Peer]),
     RealmName = ctr_realm:get_name(Realm),
-    {ok, Session} = ctr_session:new(RealmName, Peer),
+    {ok, Session} = ctr_session:new(RealmName, Details, Peer),
     AuthMethod = get_auth_method(Realm, Details),
     lager:debug("auth: ~p authmethod ~p",[Peer, AuthMethod]),
     {ok, Session, AuthMethod, Realm};

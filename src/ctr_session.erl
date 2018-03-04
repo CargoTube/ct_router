@@ -1,6 +1,6 @@
 -module(ctr_session).
 
--export([new/2,
+-export([new/3,
          close/1,
 
          set_auth_details/4,
@@ -21,6 +21,7 @@
 
 -record(session, {id = undefined,
                   realm = undefined,
+                  details = #{},
                   authid = undefined,
                   authrole = undefined,
                   authprovider = undefined,
@@ -35,11 +36,12 @@ init() ->
 lookup(SessionId) ->
     lookup_by_id(SessionId).
 
-new(RealmName, PeerAtGate)  ->
+new(RealmName, Details, PeerAtGate)  ->
     Id = ctr_utils:gen_global_id(),
     Session = #session{ id = Id,
-                     realm = RealmName,
-                     peer_at_gate = PeerAtGate },
+                        realm = RealmName,
+                        details = Details,
+                        peer_at_gate = PeerAtGate },
     try_saving_session(Session, true).
 
 close(SessionId) when is_integer(SessionId) ->
@@ -132,6 +134,7 @@ delete_by_id(Id) ->
 
 
 create_table() ->
+    {atomic, ok} = mnesia:delete_table(session),
     TabDef = [{attributes, record_info(fields, session)},
               {ram_copies, [node()]},
               {index, [realm, peer_at_gate]}

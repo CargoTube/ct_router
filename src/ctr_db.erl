@@ -10,11 +10,13 @@ init() ->
     ok = stop_mnesia(),
     ok = create_schema_if_needed(DirExists),
     ok = start_mnesia(),
+    ok = init_tables(),
     ok.
 
-create_tables() ->
+init_tables() ->
     ctr_session:init(),
     ctr_realm:init(),
+    ctr_broker:init(),
     ok.
 
 
@@ -31,7 +33,6 @@ create_schema_if_needed(false) ->
     lager:info("creating schema and tables."),
     ok = mnesia:create_schema([node()]),
     ok = start_mnesia(),
-    ok = create_tables(),
     ok.
 
 
