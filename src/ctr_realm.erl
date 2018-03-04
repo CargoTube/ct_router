@@ -64,7 +64,7 @@ lookup_by_name(Name) ->
     Result = mnesia:transaction(Lookup),
     unify_result(Result).
 
-try_saving_ctr_realm(#ctr_realm{name = Name} = Realm, New) ->
+try_saving_realm(#ctr_realm{name = Name} = Realm, New) ->
     Store = fun(true) ->
                     case mnesia:wread({ctr_realm, Name}) of
                         [] ->
