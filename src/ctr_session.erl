@@ -19,7 +19,7 @@
         ]).
 
 
--record(session, {id = undefined,
+-record(ctr_session, {id = undefined,
                   realm = undefined,
                   details = #{},
                   authid = undefined,
@@ -38,7 +38,7 @@ lookup(SessionId) ->
 
 new(RealmName, Details, PeerAtGate)  ->
     Id = ctr_utils:gen_global_id(),
-    Session = #session{ id = Id,
+    Session = #ctr_session{ id = Id,
                         realm = RealmName,
                         details = Details,
                         peer_at_gate = PeerAtGate },
@@ -46,38 +46,38 @@ new(RealmName, Details, PeerAtGate)  ->
 
 close(SessionId) when is_integer(SessionId) ->
     delete_by_id(SessionId);
-close(#session{id = SessionId}) ->
+close(#ctr_session{id = SessionId}) ->
     delete_by_id(SessionId).
 
 
 set_auth_details(AuthId, AuthMethod, AuthProvider, Session) ->
-    NewSession = Session#session{ authid = AuthId,
+    NewSession = Session#ctr_session{ authid = AuthId,
                                   authmethod = AuthMethod,
                                   authprovider = AuthProvider},
     try_saving_session(NewSession, false).
 
 
 authenticate(AuthRole, Session) ->
-    NewSession = Session#session{
+    NewSession = Session#ctr_session{
                    authrole = AuthRole,
                    authenticated = true
                   },
 
     try_saving_session(NewSession, false).
 
-is_authenticated(#session{authenticated = IsAuth}) ->
+is_authenticated(#ctr_session{authenticated = IsAuth}) ->
     IsAuth.
 
-get_peer(#session{peer_at_gate = PeerAtGate}) ->
+get_peer(#ctr_session{peer_at_gate = PeerAtGate}) ->
     PeerAtGate.
 
-get_id(#session{id = Id}) ->
+get_id(#ctr_session{id = Id}) ->
     Id.
 
-get_realm(#session{realm = Realm}) ->
+get_realm(#ctr_session{realm = Realm}) ->
     Realm.
 
-get_authrole(#session{authrole = Role}) ->
+get_authrole(#ctr_session{authrole = Role}) ->
     Role.
 
 lookup_by_id(Id) ->
@@ -94,7 +94,7 @@ lookup_by_id(Id) ->
     Result = mnesia:transaction(Lookup),
     unify_result(Result).
 
-try_saving_session(#session{id = Id} = Session, New) ->
+try_saving_session(#ctr_session{id = Id} = Session, New) ->
     Store = fun(true) ->
                     case mnesia:wread({session, Id}) of
                         [] ->
@@ -114,7 +114,7 @@ maybe_retry_saving_session({atomic, {ok, Session}}, _, _) ->
     {ok, Session};
 maybe_retry_saving_session({atomic, {error, exists}}, Session, true) ->
     Id = ctr_utils:gen_global_id(),
-    NewSession = Session#session{id = Id},
+    NewSession = Session#ctr_session{id = Id},
     try_saving_session(NewSession, true);
 maybe_retry_saving_session(Other, Session, New) ->
     lager:debug("session: saving error [new=~p], ~p ~p", [New, Other, Session]),
@@ -134,12 +134,12 @@ delete_by_id(Id) ->
 
 
 create_table() ->
-    {atomic, ok} = mnesia:delete_table(session),
-    TabDef = [{attributes, record_info(fields, session)},
+    mnesia:delete_table(ctr_session),
+    TabDef = [{attributes, record_info(fields, ctr_session)},
               {ram_copies, [node()]},
               {index, [realm, peer_at_gate]}
              ],
-    {atomic, ok} = mnesia:create_table(session, TabDef),
+    {atomic, ok} = mnesia:create_table(ctr_session, TabDef),
     ok.
 
 unify_result({atomic, Result}) ->

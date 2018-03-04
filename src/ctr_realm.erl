@@ -12,25 +12,25 @@
         ]).
 
 
--record(realm, {name = undefined,
-                authmethods = [],
-                authmapping = []
-               }).
+-record(ctr_realm, {name = undefined,
+                    authmethods = [],
+                    authmapping = []
+                   }).
 
 init() ->
     create_table().
 
 new(Name, AuthMethods, AuthMapping) when is_binary(Name) ->
-    Realm = #realm{name = Name,
-                   authmethods = AuthMethods,
-                   authmapping = AuthMapping
-                  },
+    Realm = #ctr_realm{name = Name,
+                       authmethods = AuthMethods,
+                       authmapping = AuthMapping
+                      },
     try_saving_realm(Realm, true).
 
 close(RealmName) ->
     delete_by_name(RealmName).
 
-get_role(AuthId, #realm{authmapping = Mapping}) ->
+get_role(AuthId, #ctr_realm{authmapping = Mapping}) ->
     Result = lists:keyfind(AuthId, 1, Mapping),
     return_role(Result).
 
@@ -40,11 +40,11 @@ return_role(_) ->
     {error, not_found}.
 
 
-get_name(#realm{name = Name}) ->
+get_name(#ctr_realm{name = Name}) ->
     Name.
 
 
-get_auth_methods(#realm{authmethods = Methods}) ->
+get_auth_methods(#ctr_realm{authmethods = Methods}) ->
     Methods.
 
 lookup(Name) ->
@@ -52,7 +52,7 @@ lookup(Name) ->
 
 lookup_by_name(Name) ->
     Lookup = fun() ->
-                     case mnesia:read({realm, Name}) of
+                     case mnesia:read({ctr_realm, Name}) of
                          [Realm] ->
                              {ok, Realm};
                          [] ->
@@ -64,9 +64,9 @@ lookup_by_name(Name) ->
     Result = mnesia:transaction(Lookup),
     unify_result(Result).
 
-try_saving_realm(#realm{name = Name} = Realm, New) ->
+try_saving_ctr_realm(#ctr_realm{name = Name} = Realm, New) ->
     Store = fun(true) ->
-                    case mnesia:wread({realm, Name}) of
+                    case mnesia:wread({ctr_realm, Name}) of
                         [] ->
                             mnesia:write(Realm),
                             {ok, Realm};
@@ -83,9 +83,9 @@ try_saving_realm(#realm{name = Name} = Realm, New) ->
 
 delete_by_name(Name) ->
     Delete = fun() ->
-                     case mnesia:wread({realm, Name}) of
+                     case mnesia:wread({ctr_realm, Name}) of
                          [_] ->
-                             mnesia:delete({realm, Name});
+                             mnesia:delete({ctr_realm, Name});
                          [] ->
                              {error, not_found}
                      end
@@ -95,12 +95,12 @@ delete_by_name(Name) ->
 
 
 create_table() ->
-    {atomic, ok} = mnesia:delete_table(realm),
-    TabDef = [{attributes, record_info(fields, realm)},
+    mnesia:delete_table(ctr_realm),
+    TabDef = [{attributes, record_info(fields, ctr_realm)},
               {ram_copies, [node()]},
               {index, []}
              ],
-    {atomic, ok} = mnesia:create_table(realm, TabDef),
+    {atomic, ok} = mnesia:create_table(ctr_realm, TabDef),
     ok.
 
 unify_result({atomic, Result}) ->

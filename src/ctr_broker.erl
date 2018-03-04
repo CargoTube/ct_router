@@ -9,7 +9,7 @@
          init/0
         ]).
 
--record(subscription, {
+-record(ctr_subscription, {
           id = undefined,
           uri = undefined,
           realm = undefined,
@@ -34,12 +34,12 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     Realm = ctr_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
 
-    MatchHead = #subscription{uri=Uri, realm=Realm, _='_'},
+    MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
     Guard = [],
     Result = ['$_'],
     MatchSpec = {MatchHead, Guard, Result},
 
-    NewSub = #subscription{
+    NewSub = #ctr_subscription{
                 id = NewId,
                 uri = Uri,
                 realm = Realm,
@@ -50,12 +50,14 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     Subscribe =
         fun() ->
                 case mnesia:select(subscription, MatchSpec) of
-                    [#subscription{id = Id,
+                    [#ctr_subscription{id = Id,
                                    subscribers = Subs } = Subscription] ->
                         NewSubs = [ PeerAtGate |
                                     lists:delete(PeerAtGate, Subs)],
                         ok = mnesia:write(
-                               Subscription#subscription{subscribers = NewSubs}
+                               Subscription#ctr_subscription{
+                                 subscribers = NewSubs
+                                }
                               ),
                         {added, Id};
                     [] ->
@@ -83,7 +85,7 @@ handle_subscribe_result({atomic, {added, SubId}}, Msg, Session) ->
     ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
     ok;
 handle_subscribe_result({atomic, {created, Subscription}}, Msg, Session) ->
-    #subscription{id = SubId} = Subscription,
+    #ctr_subscription{id = SubId} = Subscription,
     %% TODO: meta events
     RequestId = ct_msg:get_request_id(Msg),
     ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
@@ -94,10 +96,10 @@ handle_subscribe_result({atomic, {error, id_exists}}, Msg, Session) ->
 
 
 create_table() ->
-    {atomic, ok} = mnesia:delete_table(subscription),
-    TabDef = [{attributes, record_info(fields, subscription)},
+    mnesia:delete_table(ctr_subscription),
+    TabDef = [{attributes, record_info(fields, ctr_subscription)},
               {ram_copies, [node()]},
               {index, [realm, uri, match]}
              ],
-    {atomic, ok} = mnesia:create_table(registration, TabDef),
+    {atomic, ok} = mnesia:create_table(ctr_subscription, TabDef),
     ok.
