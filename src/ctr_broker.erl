@@ -37,7 +37,7 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
     Guard = [],
     Result = ['$_'],
-    MatchSpec = {MatchHead, Guard, Result},
+    MatchSpec = [{MatchHead, Guard, Result}],
 
     NewSub = #ctr_subscription{
                 id = NewId,
@@ -81,6 +81,7 @@ do_publish(_, _) ->
 
 
 handle_subscribe_result({atomic, {added, SubId}}, Msg, Session) ->
+    %% TODO: meta events
     RequestId = ct_msg:get_request_id(Msg),
     ct_router:to_session(Session, ?SUBSCRIBED(RequestId, SubId)),
     ok;
