@@ -36,8 +36,8 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
 
     MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
     Guard = [],
-    Result = ['$_'],
-    MatchSpec = [{MatchHead, Guard, Result}],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
 
     NewSub = #ctr_subscription{
                 id = NewId,
