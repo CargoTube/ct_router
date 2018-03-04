@@ -9,6 +9,7 @@
     stdlib,
     jobs,
     lager,
+    mnesia,
     eper
    ]},
   {env,[]},

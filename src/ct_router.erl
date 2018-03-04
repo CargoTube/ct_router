@@ -9,6 +9,7 @@
          handle_established/4,
          handle_session_closed/2,
 
+         to_session/2,
          to_peer/2
         ]).
 
@@ -30,14 +31,18 @@ handle_session_closed(SessionId, PeerAtGate) ->
     ok.
 
 get_session(SessionId, PeerAtGate) ->
-    {ok, Session} = ctr_sessions:lookup_session(SessionId),
+    {ok, Session} = ctr_session:lookup(SessionId),
     PeerAtGate = ctr_session:get_peer(Session),
     Session.
 
 close_session(Session) ->
     SessionId = ctr_session:get_id(Session),
-    ctr_sessions:close_session(SessionId).
+    ctr_session:close(SessionId).
 
+
+to_session(Session, Message) ->
+    PeerAtGate = ctr_session:get_peer(Session),
+    to_peer(PeerAtGate, {to_peer, Message}).
 
 to_peer(PeerAtGate, Message) ->
     lager:debug("[~p] ~p ! ~p", [self(), PeerAtGate, Message]),
