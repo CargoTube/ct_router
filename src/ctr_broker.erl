@@ -93,18 +93,19 @@ do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
                 case mnesia:wread({ctr_subscription, ReqId}) of
                     [#ctr_subscription{subscribers = Subs } = Subscription] ->
                         NewSubs = lists:delete(PeerAtGate, Subs),
+                        NewSubscription = Subscription#ctr_subscription{
+                                            subscribers = NewSubs
+                                           },
+                        lager:debug("broker: new subscription ~p",
+                                    [NewSubscription]),
                         case NewSubs of
                             [] ->
                                 mnesia:delete({ctr_subscription, SubId}),
-                                {deleted, Subscription};
+                                {deleted, NewSubscription};
 
                             _ ->
-                                ok = mnesia:write(
-                                       Subscription#ctr_subscription{
-                                         subscribers = NewSubs
-                                        }
-                                      ),
-                                {removed, Subscription}
+                                ok = mnesia:write(NewSubscription),
+                                {removed, NewSubscription}
                         end;
                     [] ->
                         {error, not_found}
