@@ -39,7 +39,8 @@ init() ->
     create_table().
 
 
-do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
+do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
+    lager:debug("broker: subscribe ~p ~p", [Uri, Options]),
     PeerAtGate = ctr_session:get_peer(Session),
     Realm = ctr_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
@@ -85,6 +86,7 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
 
 
 do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
+    lager:debug("broker: unsubscribe ~p ~p", [ReqId, SubId]),
     PeerAtGate = ctr_session:get_peer(Session),
     Unsubscribe =
         fun() ->
@@ -113,6 +115,7 @@ do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
 
 
 do_publish(Msg, Session) ->
+    lager:debug("broker: publish ~p", [Msg]),
     Realm = ctr_session:get_realm(Session),
     Topic = get_publish_topic(Msg),
     Arguments = get_publish_arguments(Msg),
@@ -182,6 +185,7 @@ handle_unsubscribe_result({atomic, {error, not_found}}, Msg, Session) ->
 
 
 handle_publish_result({atomic, {ok, PubId, SubId, Subs}}, Msg, Session) ->
+    lager:debug("broker: subscription ~p created", [SubId]),
     send_event(Msg, SubId, PubId, Subs, Session),
     WantAcknowledge = wants_acknowledge(Msg),
     maybe_send_published(WantAcknowledge, Msg, PubId, Session),
@@ -216,6 +220,7 @@ send_event(Msg, SubId, PubId, Subs0, Session) ->
     Peer = ctr_session:get_peer(Session),
     Subs = lists:delete(Peer, Subs0),
     Event = publish_to_event(Msg, SubId, PubId),
+    lager:debug("broker: sending event to ~p",[Subs]),
     ct_router:to_peer(Subs, {to_peer, Event}),
     ok.
 
