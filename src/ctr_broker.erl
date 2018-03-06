@@ -185,7 +185,7 @@ handle_unsubscribe_result({atomic, {error, not_found}}, Msg, Session) ->
 
 
 handle_publish_result({atomic, {ok, PubId, SubId, Subs}}, Msg, Session) ->
-    lager:debug("broker: subscription ~p created", [SubId]),
+    lager:debug("broker: publication ~p created", [PubId]),
     send_event(Msg, SubId, PubId, Subs, Session),
     WantAcknowledge = wants_acknowledge(Msg),
     maybe_send_published(WantAcknowledge, Msg, PubId, Session),
@@ -219,7 +219,9 @@ maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
 send_event(Msg, SubId, PubId, Subs0, Session) ->
     Peer = ctr_session:get_peer(Session),
     Subs = lists:delete(Peer, Subs0),
-    Event = publish_to_event(Msg, SubId, PubId),
+    Arguments = get_publish_arguments(Msg),
+    ArgumentsKw = get_publish_argumentskw(Msg),
+    Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
     lager:debug("broker: sending event to ~p",[Subs]),
     ct_router:to_peer(Subs, {to_peer, Event}),
     ok.
@@ -244,12 +246,6 @@ get_publish_argumentskw({publish, _, _, _, _, ArgumentsKw}) ->
     ArgumentsKw;
 get_publish_argumentskw(_) ->
     undefined.
-
-publish_to_event(Msg, PubId, SubId) ->
-    Arguments = get_publish_arguments(Msg),
-    ArgumentsKw = get_publish_argumentskw(Msg),
-    ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw).
-
 
 wants_acknowledge(Msg) ->
     Options = erlang:element(3, Msg),
