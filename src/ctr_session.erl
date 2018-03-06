@@ -12,6 +12,7 @@
          get_peer/1,
          get_id/1,
          get_realm/1,
+         get_subscriptions/1,
 
          is_authenticated/1,
          get_authrole/1,
@@ -49,9 +50,9 @@ new(RealmName, Details, PeerAtGate)  ->
                         peer_at_gate = PeerAtGate },
     try_saving_session(Session, true).
 
-close(SessionId) when is_integer(SessionId) ->
-    delete_by_id(SessionId);
-close(#ctr_session{id = SessionId}) ->
+
+close(#ctr_session{id = SessionId} = Session) ->
+    ctr_broker:unsubscribe_all(Session),
     delete_by_id(SessionId).
 
 
@@ -78,6 +79,9 @@ add_subscription(SubId, #ctr_session{subscriptions = Subs} = Session) ->
 
 has_subscription(SubId, #ctr_session{subscriptions = Subs}) ->
     lists:member(SubId, Subs).
+
+get_subscriptions(#ctr_session{subscriptions = Subs}) ->
+    Subs.
 
 remove_subscription(SubId, #ctr_session{subscriptions = Subs} = Session) ->
     NewSubs = lists:delete(SubId, Subs),

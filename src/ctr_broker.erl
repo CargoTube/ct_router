@@ -5,6 +5,7 @@
 
 -export([
          handle_message/3,
+         unsubscribe_all/1,
 
          init/0
         ]).
@@ -34,6 +35,12 @@ handle_message(unsubscribe, Message, Session) ->
     do_unsubscribe(Message, Session);
 handle_message(publish, Message, Session) ->
     do_publish(Message, Session).
+
+
+unsubscribe_all(Session) ->
+   _Subs = ctr_session:get_subscriptions(Session),
+   _PeerAtGate = ctr_session:get_peer(Session),
+   ok.
 
 init() ->
     create_table().
@@ -88,6 +95,11 @@ do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
 do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
     lager:debug("broker: unsubscribe ~p ~p", [ReqId, SubId]),
     PeerAtGate = ctr_session:get_peer(Session),
+    Result = delete_subscription(SubId, PeerAtGate),
+    handle_unsubscribe_result(Result, Msg, Session).
+
+
+delete_subscription(SubId, PeerAtGate) ->
     Unsubscribe =
         fun() ->
                 case mnesia:wread({ctr_subscription, SubId}) of
@@ -109,8 +121,8 @@ do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
                         {error, not_found}
                 end
         end,
-    Result = mnesia:transaction(Unsubscribe),
-    handle_unsubscribe_result(Result, Msg, Session).
+    mnesia:transaction(Unsubscribe).
+
 
 
 do_publish(Msg, Session) ->

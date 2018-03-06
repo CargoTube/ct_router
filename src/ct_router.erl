@@ -36,8 +36,7 @@ get_session(SessionId, PeerAtGate) ->
     Session.
 
 close_session(Session) ->
-    SessionId = ctr_session:get_id(Session),
-    ctr_session:close(SessionId).
+    ctr_session:close(Session).
 
 
 to_session(Session, Message) ->
