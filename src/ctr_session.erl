@@ -53,6 +53,8 @@ new(RealmName, Details, PeerAtGate)  ->
 
 close(#ctr_session{id = SessionId} = Session) ->
     ctr_broker:unsubscribe_all(Session),
+    %% ctr_dealer:unregister_all(Session),
+    %% ct_router:perform_testatment(Session),
     delete_by_id(SessionId).
 
 
