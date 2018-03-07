@@ -38,9 +38,15 @@ handle_message(publish, Message, Session) ->
 
 
 unsubscribe_all(Session) ->
-   _Subs = ctr_session:get_subscriptions(Session),
-   _PeerAtGate = ctr_session:get_peer(Session),
-   ok.
+    Subs = ctr_session:get_subscriptions(Session),
+    PeerAtGate = ctr_session:get_peer(Session),
+
+    Delete = fun(SubId) ->
+                     delete_subscription(SubId, PeerAtGate),
+                     ok
+             end,
+    lists:foldl(Delete, ok, Subs),
+    ok.
 
 init() ->
     create_table().
