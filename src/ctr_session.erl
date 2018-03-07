@@ -9,10 +9,15 @@
          has_subscription/2,
          remove_subscription/2,
 
+         add_registration/2,
+         has_registration/2,
+         remove_registration/2,
+
          get_peer/1,
          get_id/1,
          get_realm/1,
          get_subscriptions/1,
+         get_registrations/1,
 
          is_authenticated/1,
          get_authrole/1,
@@ -53,7 +58,7 @@ new(RealmName, Details, PeerAtGate)  ->
 
 close(#ctr_session{id = SessionId} = Session) ->
     ctr_broker:unsubscribe_all(Session),
-    %% ctr_dealer:unregister_all(Session),
+    ctr_dealer:unregister_all(Session),
     %% ct_router:perform_testatment(Session),
     delete_by_id(SessionId).
 
@@ -86,6 +91,22 @@ get_subscriptions(#ctr_session{subscriptions = Subs}) ->
     Subs.
 
 remove_subscription(SubId, #ctr_session{subscriptions = Subs} = Session) ->
+    NewSubs = lists:delete(SubId, Subs),
+    NewSession = Session#ctr_session{ subscriptions = NewSubs },
+    try_saving_session(NewSession, false).
+
+add_registration(RegId, #ctr_session{registrations = Regs} = Session) ->
+    NewRegs = [ RegId | lists:delete(RegId, Regs) ],
+    NewSession = Session#ctr_session{ registrations = NewRegs },
+    try_saving_session(NewSession, false).
+
+has_registration(RegId, #ctr_session{registrations = Regs}) ->
+    lists:member(RegId, Regs).
+
+get_registrations(#ctr_session{registrations = Regs}) ->
+    Regs.
+
+remove_registration(SubId, #ctr_session{subscriptions = Subs} = Session) ->
     NewSubs = lists:delete(SubId, Subs),
     NewSession = Session#ctr_session{ subscriptions = NewSubs },
     try_saving_session(NewSession, false).
