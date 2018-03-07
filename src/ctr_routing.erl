@@ -27,10 +27,10 @@ maybe_handle_message(_, _, _Type, Message, Session) ->
 handle_message(Type, Message, Session)
   when Type == subscribe; Type == unsubscribe; Type == publish  ->
     ctr_broker:handle_message(Type, Message, Session);
-%% handle_message(Type, Message, Session)
-%%   when Type == call; Type == register; Type == unregister;
-%%        Type == yield ->
-%%     ctr_dealer:handle_message(Type, Message, Session);
+handle_message(Type, Message, Session)
+  when Type == call; Type == register; Type == unregister;
+       Type == yield ->
+    ctr_dealer:handle_message(Type, Message, Session);
 handle_message(Type, Message, Session) ->
     lager:debug("routing: ~p unsupported type ~p", [ctr_session:get_peer(Session),
                                               Message]),
