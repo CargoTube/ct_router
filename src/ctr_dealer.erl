@@ -16,7 +16,7 @@
           procedure = undefined,
           match = exact,
           created = undefined,
-          callees = []
+          callee_sess_ids = []
          }).
 
 init() ->
@@ -30,16 +30,15 @@ handle_message(unregister, Message, Session) ->
 handle_message(call, Message, Session) ->
     do_call(Message, Session);
 handle_message(yield, Message, Session) ->
-    do_yield(Message, Session).
-
+    ctrd_invocation:yield(Message, Session).
 
 
 unregister_all(Session) ->
     Regs = ctr_session:get_registrations(Session),
-    PeerAtGate = ctr_session:get_peer(Session),
+    SessId = ctr_session:get_id(Session),
 
     Delete = fun(RegId, ok) ->
-                     delete_registration(RegId, PeerAtGate),
+                     delete_registration(RegId, SessId),
                      ok
              end,
     lists:foldl(Delete, ok, Regs),
@@ -48,7 +47,7 @@ unregister_all(Session) ->
 
 do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
     lager:debug("dealer: register ~p ~p", [Procedure, Options]),
-    PeerAtGate = ctr_session:get_peer(Session),
+    SessId = ctr_session:get_id(Session),
     Realm = ctr_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
 
@@ -62,12 +61,12 @@ do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
                 procedure = Procedure,
                 realm = Realm,
                 created = calendar:universal_time(),
-                callees = [PeerAtGate]
+                callee_sess_ids = [SessId]
                },
 
     Register =
         fun() ->
-                case mnesia:select(ctr_registration, MatchSpec) of
+                case mnesia:select(ctr_registration, MatchSpec, write) of
                     [] ->
                         case mnesia:wread({ctr_registration, NewId}) of
                             [] ->
@@ -85,23 +84,33 @@ do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
 
 do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
     lager:debug("dealer: unregister ~p ~p", [ReqId, RegId]),
-    PeerAtGate = ctr_session:get_peer(Session),
-    Result = delete_registration(RegId, PeerAtGate),
+    SessId = ctr_session:get_id(Session),
+    Result = delete_registration(RegId, SessId),
     handle_unregister_result(Result, Msg, Session).
 
 
 
 do_call(Msg, Session) ->
-    ReqId = erlang:element(2, Msg),
-    Options = erlang:element(3, Msg),
+    call = erlang:element(1, Msg),
     Procedure = erlang:element(4, Msg),
+    Realm = ctr_session:get_realm(Session),
 
-    ok.
+    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
 
-do_yield(Msg, Session) ->
-    ReqId = erlang:element(2, Msg),
-    Options = erlang:element(3, Msg),
-    ok.
+    FindCallee =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, write) of
+                    [Registration] ->
+                        {ok, Registration};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(FindCallee),
+    handle_call_callee(Result, Msg, Session).
 
 
 handle_register_result({atomic, {created, Registration}}, Msg, Session) ->
@@ -131,6 +140,27 @@ handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     HasRegistration = ctr_session:has_registration(RegId, Session),
     maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
 
+handle_call_callee({atomic, {ok, Registration}}, Msg, Session) ->
+    #ctr_registration{
+       id = RegistrationId,
+       callee_sess_ids = CalleeIds
+      } = Registration,
+    {ok, RequestId} = ct_msg:get_request_id(Msg),
+    Options = erlang:element(3, Msg),
+    Arguments = get_arguments(Msg),
+    ArgumentsKw = get_argumentskw(Msg),
+    Realm = ctr_session:get_realm(Session),
+    CallerId = ctr_session:get_id(Session),
+
+    ctrd_invocation:new(Realm, CallerId, RequestId, Options, Arguments,
+                        ArgumentsKw, RegistrationId, CalleeIds),
+    ok;
+handle_call_callee({atomic, {error, not_found}}, Msg, Session) ->
+    {ok, RequestId} = ct_msg:get_request_id(Msg),
+    Error = ?ERROR(call, RequestId, #{}, no_such_procedure),
+    ok = ct_router:to_session(Session, Error),
+    ok.
+
 
 send_registered(Msg, RegId, Session) ->
     %% TODO: meta events
@@ -154,24 +184,23 @@ send_unregistered(Msg, RegId, Session) ->
     ok = ct_router:to_session(NewSession, ?UNREGISTERED(RequestId)),
     ok.
 
-delete_registration(RegId, PeerAtGate) ->
+delete_registration(RegId, SessId) ->
     lager:debug("dealer: delete registration ~p",[RegId]),
     Unregister =
         fun() ->
                 case mnesia:wread({ctr_registration, RegId}) of
-                    [#ctr_registration{callees = Callees } = Registration] ->
-                        NewCallees = lists:delete(PeerAtGate, Callees),
-                        NewRegistration = Registration#ctr_registration{
-                                            callees = NewCallees
-                                           },
+                    [#ctr_registration{callee_sess_ids = Callees} = Reg] ->
+                        NewCallees = lists:delete(SessId, Callees),
+                        NewReg = Reg#ctr_registration{
+                                   callee_sess_ids = NewCallees},
                         case NewCallees of
                             [] ->
                                 mnesia:delete({ctr_registration, RegId}),
-                                {deleted, NewRegistration};
+                                {deleted, NewReg};
 
                             _ ->
-                                ok = mnesia:write(NewRegistration),
-                                {removed, NewRegistration}
+                                ok = mnesia:write(NewReg),
+                                {removed, NewReg}
                         end;
                     [] ->
                         {error, not_found}
@@ -179,7 +208,17 @@ delete_registration(RegId, PeerAtGate) ->
         end,
     mnesia:transaction(Unregister).
 
+get_arguments({call, _, _, _, Arguments}) ->
+    Arguments;
+get_arguments({call, _, _, _, Arguments, _}) ->
+    Arguments;
+get_arguments(_) ->
+    undefined.
 
+get_argumentskw({call, _, _, _, _, ArgumentsKw}) ->
+    ArgumentsKw;
+get_argumentskw(_) ->
+    undefined.
 
 
 

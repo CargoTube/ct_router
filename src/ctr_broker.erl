@@ -73,7 +73,7 @@ do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
 
     Subscribe =
         fun() ->
-                case mnesia:select(ctr_subscription, MatchSpec) of
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
                     [#ctr_subscription{id = Id,
                                    subscribers = Subs } = Subscription] ->
                         NewSubs = [ PeerAtGate |
@@ -150,13 +150,13 @@ do_publish(Msg, Session) ->
     MatchHead = #ctr_subscription{uri=Topic, realm=Realm, _='_'},
     Guard = [],
     GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    MatSpec = [{MatchHead, Guard, GiveObject}],
 
     Lookup =
         fun() ->
                 case mnesia:wread({ctr_publication, NewPubId}) of
                     [] ->
-                        case mnesia:select(ctr_subscription, MatchSpec) of
+                        case mnesia:select(ctr_subscription, MatSpec, write) of
                             [#ctr_subscription{id = SubId,
                                                subscribers = Subs}] ->
                                 ok = mnesia:write(
