@@ -86,7 +86,7 @@ do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
 do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
     lager:debug("dealer: unregister ~p ~p", [ReqId, RegId]),
     PeerAtGate = ctr_session:get_peer(Session),
-    Result = delete_registration(ReqId, PeerAtGate),
+    Result = delete_registration(RegId, PeerAtGate),
     handle_unregister_result(Result, Msg, Session).
 
 
