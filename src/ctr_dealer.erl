@@ -155,6 +155,7 @@ send_unregistered(Msg, RegId, Session) ->
     ok.
 
 delete_registration(RegId, PeerAtGate) ->
+    lager:debug("dealer: delete registration ~p",[RegId]),
     Unregister =
         fun() ->
                 case mnesia:wread({ctr_registration, RegId}) of

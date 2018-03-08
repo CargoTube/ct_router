@@ -53,10 +53,12 @@ new(RealmName, Details, PeerAtGate)  ->
                         realm = RealmName,
                         details = Details,
                         peer_at_gate = PeerAtGate },
+    lager:debug("session: starting ~p", [Session]),
     try_saving_session(Session, true).
 
 
 close(#ctr_session{id = SessionId} = Session) ->
+    lager:debug("session: closing ~p", [Session]),
     ctr_broker:unsubscribe_all(Session),
     ctr_dealer:unregister_all(Session),
     %% ct_router:perform_testatment(Session),
