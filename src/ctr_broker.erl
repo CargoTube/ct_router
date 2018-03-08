@@ -41,7 +41,7 @@ unsubscribe_all(Session) ->
     Subs = ctr_session:get_subscriptions(Session),
     PeerAtGate = ctr_session:get_peer(Session),
 
-    Delete = fun(SubId) ->
+    Delete = fun(SubId, ok) ->
                      delete_subscription(SubId, PeerAtGate),
                      ok
              end,

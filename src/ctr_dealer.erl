@@ -38,7 +38,7 @@ unregister_all(Session) ->
     Regs = ctr_session:get_registrations(Session),
     PeerAtGate = ctr_session:get_peer(Session),
 
-    Delete = fun(RegId) ->
+    Delete = fun(RegId, ok) ->
                      delete_registration(RegId, PeerAtGate),
                      ok
              end,
