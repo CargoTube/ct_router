@@ -19,6 +19,9 @@
           callees = []
          }).
 
+init() ->
+    create_table().
+
 
 handle_message(register, Message, Session) ->
     do_register(Message, Session);
@@ -176,18 +179,15 @@ delete_registration(RegId, PeerAtGate) ->
     mnesia:transaction(Unregister).
 
 
-init() ->
-    create_table().
 
 
 
 
 create_table() ->
-    mnesia:delete_table(ctr_subscription),
-    mnesia:delete_table(ctr_publication),
+    mnesia:delete_table(ctr_registration),
     RegDef = [{attributes, record_info(fields, ctr_registration)},
               {ram_copies, [node()]},
               {index, [realm, procedure, match]}
              ],
-    {atomic, ok} = mnesia:create_table(ctr_subscription, RegDef),
+    {atomic, ok} = mnesia:create_table(ctr_registration, RegDef),
     ok.
