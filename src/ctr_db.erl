@@ -18,7 +18,6 @@ init_tables() ->
     ctr_realm:init(),
     ctr_broker:init(),
     ctr_dealer:init(),
-    ctrd_invocation:init(),
     ok.
 
 

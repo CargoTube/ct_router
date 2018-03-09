@@ -5,6 +5,7 @@
 
 -export([
          new/8,
+         yield/4,
 
          init/0
         ]).
@@ -21,20 +22,45 @@
 init() ->
     create_table().
 
-new(Realm, CallerSessId, CallerReqId,
-    _Options, Arguments, ArgumentsKw,
-    RegistrationId, CalleeIds) ->
+new(Realm, CallerSessId, CallerReqId, _Options, Arguments,
+    ArgumentsKw, RegistrationId, CalleeIds) ->
     Invoc = #ctrd_invocation{
                 caller_sess_id = CallerSessId,
                 caller_req_id = CallerReqId,
                 callees = CalleeIds,
                 realm = Realm
                },
-    {ok, InvocId} = store_invocation(Invoc),
-    InvocMsg = ?INVOCATION(InvocId, RegistrationId, #{}, Arguments,
-                           ArgumentsKw),
+    {ok, Invoc} = store_invocation(Invoc),
+    send_invocation(Invoc, RegistrationId, #{}, Arguments, ArgumentsKw),
+    ok.
+
+%% invocation_error() ->
+%%     ok.
+
+yield(InvocId, _Options, Arguments, ArgumentsKw) ->
+    Result = find_invocation(InvocId),
+    maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
+
+maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
+    #ctrd_invocation{
+       caller_sess_id = CallerSessId,
+       caller_req_id = CallerReqId
+      } = Invoc,
+    ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
+    send_message(CallerSessId ,ResultMsg),
+    ok;
+maybe_send_result(_, _, _, _) ->
+    ok.
+
+send_invocation(Invocation, RegistrationId, Options, Args, ArgsKw) ->
+    #ctrd_invocation{
+       id = InvocId,
+       callees = CalleeIds } = Invocation,
+    InvocMsg = ?INVOCATION(InvocId, RegistrationId, Options, Args, ArgsKw),
     send_message(CalleeIds, InvocMsg),
     ok.
+
+
 
 send_message([], _) ->
     ok;
@@ -56,7 +82,7 @@ store_invocation(Invoc) ->
                 case mnesia:wread({ctrd_invocation, NewId}) of
                     [] ->
                         ok = mnesia:write(NewInvoc),
-                        {ok, NewId};
+                        {ok, NewInvoc};
                     _ ->
                         {error, id_exists}
                 end
@@ -65,12 +91,27 @@ store_invocation(Invoc) ->
     handle_invocation_store_result(Result, NewInvoc).
 
 
-handle_invocation_store_result({atomic, {ok, Id}}, _) ->
-    {ok, Id};
+handle_invocation_store_result({atomic, {ok, Invoc}}, _) ->
+    {ok, Invoc};
 handle_invocation_store_result({atomic, {error, id_exists}}, Invoc) ->
     store_invocation(Invoc).
 
 
+find_invocation(InvocId) ->
+    FindInvocation =
+        fun() ->
+                case mnesia:read({ctrd_invocation, InvocId}) of
+                    [Invoc] -> {ok, Invoc};
+                    _ -> {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(FindInvocation),
+    handle_invocation_find_result(Result).
+
+handle_invocation_find_result({atomic, {ok, Invocation}}) ->
+    {ok, Invocation};
+handle_invocation_find_result(_) ->
+    {error, not_found}.
 
 create_table() ->
     mnesia:delete_table(ctrd_invocation),

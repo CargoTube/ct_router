@@ -20,6 +20,7 @@
          }).
 
 init() ->
+    ctrd_invocation:init(),
     create_table().
 
 
