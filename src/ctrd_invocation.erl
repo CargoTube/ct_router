@@ -5,7 +5,7 @@
 
 -export([
          new/8,
-         yield/4,
+         yield/2,
 
          init/0
         ]).
@@ -37,8 +37,15 @@ new(Realm, CallerSessId, CallerReqId, _Options, Arguments,
 %% invocation_error() ->
 %%     ok.
 
-yield(InvocId, _Options, Arguments, ArgumentsKw) ->
-    Result = find_invocation(InvocId),
+yield(Msg, CalleeSession) ->
+    CalleeSessId = ctr_session:get_id(CalleeSession),
+    yield = erlang:element(1, Msg),
+    InvocId = erlang:element(2, Msg),
+    %% Options = erlang:element(3, Msg),
+    Arguments = get_arguments(Msg),
+    ArgumentsKw = get_argumentskw(Msg),
+
+    Result = find_invocation(InvocId, CalleeSessId),
     maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
 
 maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
@@ -74,6 +81,18 @@ maybe_send(_, _) ->
     ok.
 
 
+get_arguments({yield, _,  _, Arguments}) ->
+    Arguments;
+get_arguments({yield, _,  _, Arguments, _}) ->
+    Arguments;
+get_arguments(_) ->
+    undefined.
+
+get_argumentskw({yield, _,  _, _, ArgumentsKw}) ->
+    ArgumentsKw;
+get_argumentskw(_) ->
+    undefined.
+
 store_invocation(Invoc) ->
     NewId = ctr_utils:gen_global_id(),
     NewInvoc = Invoc#ctrd_invocation{id = NewId},
@@ -97,7 +116,7 @@ handle_invocation_store_result({atomic, {error, id_exists}}, Invoc) ->
     store_invocation(Invoc).
 
 
-find_invocation(InvocId) ->
+find_invocation(InvocId, _CalleeSessId) ->
     FindInvocation =
         fun() ->
                 case mnesia:read({ctrd_invocation, InvocId}) of
