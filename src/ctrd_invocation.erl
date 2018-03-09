@@ -117,7 +117,7 @@ create_table() ->
     mnesia:delete_table(ctrd_invocation),
     InvDef = [{attributes, record_info(fields, ctrd_invocation)},
               {ram_copies, [node()]},
-              {index, [realm, procedure, match]}
+              {index, [realm]}
              ],
     {atomic, ok} = mnesia:create_table(ctrd_invocation, InvDef),
     ok.
