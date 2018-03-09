@@ -24,13 +24,13 @@ init() ->
 
 new(Realm, CallerSessId, CallerReqId, _Options, Arguments,
     ArgumentsKw, RegistrationId, CalleeIds) ->
-    Invoc = #ctrd_invocation{
+    Invoc0 = #ctrd_invocation{
                 caller_sess_id = CallerSessId,
                 caller_req_id = CallerReqId,
                 callees = CalleeIds,
                 realm = Realm
                },
-    {ok, Invoc} = store_invocation(Invoc),
+    {ok, Invoc} = store_invocation(Invoc0),
     send_invocation(Invoc, RegistrationId, #{}, Arguments, ArgumentsKw),
     ok.
 
