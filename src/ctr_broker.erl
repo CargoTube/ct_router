@@ -21,6 +21,8 @@
 
 -record(ctr_publication, {
           id = undefined,
+          pub_sess_id = undefined,
+          subs = [],
           realm = undefined,
           topic = undefined,
           ts = undefined,
@@ -90,33 +92,15 @@ do_publish(Msg, Session) ->
                 arguments = Arguments,
                 argumentskw = ArgumentsKw},
 
-    MatchHead = #ctr_subscription{uri=Topic, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatSpec = [{MatchHead, Guard, GiveObject}],
-
-    Lookup =
-        fun() ->
-                case mnesia:wread({ctr_publication, NewPubId}) of
-                    [] ->
-                        case mnesia:select(ctr_subscription, MatSpec, write) of
-                            [#ctr_subscription{id = SubId,
-                                               subscribers = Subs}] ->
-                                ok = mnesia:write(
-                                       NewPub#ctr_publication{sub_id=SubId}
-                                      ),
-                                {ok, NewPubId, SubId, Subs};
-
-                            [] ->
-                                ok = mnesia:write(NewPub),
-                                {ok, NewPubId, -1, []}
-                        end;
-                    _ ->
-                        {error, pub_id_exists}
-                end
-        end,
-    Result = mnesia:transaction(Lookup),
-    handle_publish_result(Result, Msg, Session).
+    {ok, Publication} = store_publication(NewPub),
+    #ctr_publication{
+       id = PubId,
+       sub_id = SubId,
+       subs = Subs
+      } = Publication,
+    send_event(Msg, SubId, PubId, Subs, Session),
+    WantAcknowledge = wants_acknowledge(Msg),
+    maybe_send_published(WantAcknowledge, Msg, PubId, Session).
 
 
 handle_subscribe_result({added, Subscription}, Msg, Session) ->
@@ -142,15 +126,6 @@ handle_unsubscribe_result({error, not_found}, Msg, Session) ->
     HasSubscription = ctr_session:has_subscription(SubId, Session),
     maybe_send_unsubscribe(HasSubscription, Msg, SubId, Session).
 
-
-handle_publish_result({atomic, {ok, PubId, SubId, Subs}}, Msg, Session) ->
-    lager:debug("broker: publication ~p created", [PubId]),
-    send_event(Msg, SubId, PubId, Subs, Session),
-    WantAcknowledge = wants_acknowledge(Msg),
-    maybe_send_published(WantAcknowledge, Msg, PubId, Session),
-    ok;
-handle_publish_result({atomic, {error, pub_id_exists}}, Msg, Session) ->
-    do_publish(Msg, Session).
 
 
 send_subscribed(Msg, SubId, Session) ->
@@ -265,6 +240,55 @@ handle_store_result({atomic, {added, Subscription}}, _) ->
     {added, Subscription};
 handle_store_result({atomic, {error, id_exists}}, Subscription) ->
     store_subscription(Subscription).
+
+
+store_publication(Pub0) ->
+    #ctr_publication{
+       realm = Realm,
+       topic = Topic,
+       pub_sess_id = SessId
+      } = Pub0,
+    {ok, Session} = ctr_session:lookup(SessId),
+    Realm = ctr_session:get_realm(Session),
+    NewPubId = ctr_utils:gen_global_id(),
+
+    NewPub = Pub0#ctr_publication{id = NewPubId},
+
+    MatchHead = #ctr_subscription{uri=Topic, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatSpec = [{MatchHead, Guard, GiveObject}],
+
+    Lookup =
+        fun() ->
+                case mnesia:wread({ctr_publication, NewPubId}) of
+                    [] ->
+                        case mnesia:select(ctr_subscription, MatSpec, write) of
+                            [#ctr_subscription{id = SubId,
+                                               subscribers = Subs}] ->
+                                UpdatedPub =
+                                    NewPub #ctr_publication{sub_id=SubId,
+                                                            subs = Subs
+                                                           },
+                                ok = mnesia:write(UpdatedPub),
+                                {ok, UpdatedPub};
+
+                            [] ->
+                                ok = mnesia:write(NewPub),
+                                {ok, NewPub}
+                        end;
+                    _ ->
+                        {error, pub_id_exists}
+                end
+        end,
+    Result = mnesia:transaction(Lookup),
+    handle_publication_store_result(Result, Pub0).
+
+
+handle_publication_store_result({atomic, {ok, Publication}}, _Pub0) ->
+    {ok, Publication};
+handle_publication_store_result({atomic, {error, pub_id_exists}}, Pub0) ->
+    store_publication(Pub0).
 
 
 delete_subscription(SubId, SessionId) ->
