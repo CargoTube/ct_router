@@ -29,7 +29,7 @@ handle_message(Type, Message, Session)
     ctr_broker:handle_message(Type, Message, Session);
 handle_message(Type, Message, Session)
   when Type == call; Type == register; Type == unregister;
-       Type == yield ->
+       Type == yield; Type == error ->
     ctr_dealer:handle_message(Type, Message, Session);
 handle_message(Type, Message, Session) ->
     lager:debug("routing: ~p unsupported type ~p", [ctr_session:get_peer(Session),
