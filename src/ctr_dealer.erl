@@ -30,6 +30,8 @@ handle_message(unregister, Message, Session) ->
     do_unregister(Message, Session);
 handle_message(call, Message, Session) ->
     do_call(Message, Session);
+handle_message(error, Message, Session) ->
+    ctrd_invocation:invocation_error(Message, Session);
 handle_message(yield, Message, Session) ->
     ctrd_invocation:yield(Message, Session).
 
@@ -52,10 +54,6 @@ do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
     Realm = ctr_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
 
-    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
 
     NewReg = #ctr_registration{
                 id = NewId,
@@ -64,24 +62,19 @@ do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
                 created = calendar:universal_time(),
                 callee_sess_ids = [SessId]
                },
-
-    Register =
-        fun() ->
-                case mnesia:select(ctr_registration, MatchSpec, write) of
-                    [] ->
-                        case mnesia:wread({ctr_registration, NewId}) of
-                            [] ->
-                                ok = mnesia:write(NewReg),
-                                {created, NewReg};
-                            _ ->
-                                {error, id_exists}
-                        end;
-                    _ ->
-                        {error, procedure_exists}
-                end
-        end,
-    Result = mnesia:transaction(Register),
+    Result = store_registration(NewReg),
     handle_register_result(Result, Msg, Session).
+
+
+handle_register_result({created, #ctr_registration{id = RegId}},
+                       Msg, Session) ->
+    %% TODO: meta events
+    send_registered(Msg, RegId, Session);
+handle_register_result({error, procedure_exists}, Msg, Session) ->
+    ReqId = ct_msg:get_request_id(Msg),
+    ok = ct_router:to_session(Session, ?ERROR(register, ReqId, #{},
+                                              procedure_already_exists)),
+    ok.
 
 do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
     lager:debug("dealer: unregister ~p ~p", [ReqId, RegId]),
@@ -93,38 +86,8 @@ do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
 
 do_call(Msg, Session) ->
     call = erlang:element(1, Msg),
-    Procedure = erlang:element(4, Msg),
-    Realm = ctr_session:get_realm(Session),
-
-    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
-
-    FindCallee =
-        fun() ->
-                case mnesia:select(ctr_registration, MatchSpec, write) of
-                    [Registration] ->
-                        {ok, Registration};
-                    _ ->
-                        {error, not_found}
-                end
-        end,
-    Result = mnesia:transaction(FindCallee),
+    Result = find_callee(Msg, Session),
     handle_call_callee(Result, Msg, Session).
-
-
-handle_register_result({atomic, {created, Registration}}, Msg, Session) ->
-    #ctr_registration{id = RegId} = Registration,
-    %% TODO: meta events
-    send_registered(Msg, RegId, Session);
-handle_register_result({atomic, {error, procedure_exists}}, Msg, Session) ->
-    ReqId = ct_msg:get_request_id(Msg),
-    ok = ct_router:to_session(Session, ?ERROR(register, ReqId, #{},
-                                              procedure_already_exists)),
-    ok;
-handle_register_result({atomic, {error, id_exists}}, Msg, Session) ->
-    do_register(Msg, Session).
 
 
 
@@ -141,22 +104,15 @@ handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     HasRegistration = ctr_session:has_registration(RegId, Session),
     maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
 
-handle_call_callee({atomic, {ok, Registration}}, Msg, Session) ->
+handle_call_callee({ok, Registration}, Msg, Session) ->
     #ctr_registration{
        id = RegistrationId,
        callee_sess_ids = CalleeIds
       } = Registration,
-    {ok, RequestId} = ct_msg:get_request_id(Msg),
-    Options = erlang:element(3, Msg),
-    Arguments = get_arguments(Msg),
-    ArgumentsKw = get_argumentskw(Msg),
-    Realm = ctr_session:get_realm(Session),
-    CallerId = ctr_session:get_id(Session),
 
-    ctrd_invocation:new(Realm, CallerId, RequestId, Options, Arguments,
-                        ArgumentsKw, RegistrationId, CalleeIds),
+    ctrd_invocation:new(RegistrationId, CalleeIds, Msg, Session),
     ok;
-handle_call_callee({atomic, {error, not_found}}, Msg, Session) ->
+handle_call_callee({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     Error = ?ERROR(call, RequestId, #{}, no_such_procedure),
     ok = ct_router:to_session(Session, Error),
@@ -185,6 +141,74 @@ send_unregistered(Msg, RegId, Session) ->
     ok = ct_router:to_session(NewSession, ?UNREGISTERED(RequestId)),
     ok.
 
+
+store_registration(Registration) ->
+    #ctr_registration{
+       id = NewId,
+       procedure = Procedure,
+       realm = Realm
+      } = Registration,
+
+    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    Register =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, write) of
+                    [] ->
+                        case mnesia:wread({ctr_registration, NewId}) of
+                            [] ->
+                                ok = mnesia:write(Registration),
+                                {created, Registration};
+                            _ ->
+                                {error, id_exists}
+                        end;
+                    _ ->
+                        {error, procedure_exists}
+                end
+        end,
+    Result = mnesia:transaction(Register),
+    handle_store_result(Result, Registration).
+
+handle_store_result({atomic, {created, Registration}}, _) ->
+    {created, Registration};
+handle_store_result({atomic, {error, procedure_exists}}, _Registration) ->
+    {error, procedure_exists};
+handle_store_result({atomic, {error, id_exists}}, Registration) ->
+    store_registration(Registration).
+
+
+find_callee(Msg, Session) ->
+    call = erlang:element(1, Msg),
+    Procedure = erlang:element(4, Msg),
+    Realm = ctr_session:get_realm(Session),
+
+    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+
+    FindCallee =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, write) of
+                    [Registration] ->
+                        {ok, Registration};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(FindCallee),
+    handle_find_result(Result).
+
+handle_find_result({atomic, {ok, Registration}}) ->
+    {ok, Registration};
+handle_find_result({atomic, {error, not_found}}) ->
+    {error, not_found}.
+
+
+
+
 delete_registration(RegId, SessId) ->
     lager:debug("dealer: delete registration ~p",[RegId]),
     Unregister =
@@ -208,19 +232,6 @@ delete_registration(RegId, SessId) ->
                 end
         end,
     mnesia:transaction(Unregister).
-
-get_arguments({call, _, _, _, Arguments}) ->
-    Arguments;
-get_arguments({call, _, _, _, Arguments, _}) ->
-    Arguments;
-get_arguments(_) ->
-    undefined.
-
-get_argumentskw({call, _, _, _, _, ArgumentsKw}) ->
-    ArgumentsKw;
-get_argumentskw(_) ->
-    undefined.
-
 
 
 
