@@ -4,7 +4,8 @@
 -include_lib("ct_msg/include/ct_msg.hrl").
 
 -export([
-         new/8,
+         new/4,
+         invocation_error/2,
          yield/2,
 
          init/0
@@ -22,8 +23,14 @@
 init() ->
     create_table().
 
-new(Realm, CallerSessId, CallerReqId, _Options, Arguments,
-    ArgumentsKw, RegistrationId, CalleeIds) ->
+new(RegistrationId, CalleeIds, Msg, CallerSession) ->
+    {ok, CallerReqId} = ct_msg:get_request_id(Msg),
+    %% Options = erlang:element(3, Msg),
+    Arguments = get_arguments(Msg),
+    ArgumentsKw = get_argumentskw(Msg),
+    Realm = ctr_session:get_realm(CallerSession),
+    CallerSessId = ctr_session:get_id(CallerSession),
+
     Invoc0 = #ctrd_invocation{
                 caller_sess_id = CallerSessId,
                 caller_req_id = CallerReqId,
@@ -34,8 +41,19 @@ new(Realm, CallerSessId, CallerReqId, _Options, Arguments,
     send_invocation(Invoc, RegistrationId, #{}, Arguments, ArgumentsKw),
     ok.
 
-%% invocation_error() ->
-%%     ok.
+invocation_error(Msg, CalleeSession) ->
+    CalleeSessId = ctr_session:get_id(CalleeSession),
+    error = erlang:element(1, Msg),
+    invocation = erlang:element(2, Msg),
+    InvocId = erlang:element(3, Msg),
+    %% Details = erlang:element(4, Msg),
+    ErrorUri = erlang:element(5, Msg),
+    Arguments = get_arguments(Msg),
+    ArgumentsKw = get_argumentskw(Msg),
+
+    Result = find_invocation(InvocId, CalleeSessId),
+    maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
+
 
 yield(Msg, CalleeSession) ->
     CalleeSessId = ctr_session:get_id(CalleeSession),
@@ -57,6 +75,17 @@ maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
     send_message([CallerSessId] ,ResultMsg),
     ok;
 maybe_send_result(_, _, _, _) ->
+    ok.
+
+maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
+    #ctrd_invocation{
+       caller_sess_id = CallerSessId,
+       caller_req_id = CallerReqId
+      } = Invoc,
+    ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
+    send_message([CallerSessId] ,ResultMsg),
+    ok;
+maybe_send_error(_, _, _, _, _) ->
     ok.
 
 send_invocation(Invocation, RegistrationId, Options, Args, ArgsKw) ->
@@ -81,17 +110,32 @@ maybe_send(_, _) ->
     ok.
 
 
-get_arguments({yield, _,  _, Arguments}) ->
+get_arguments({call, _, _, _, Arguments}) ->
     Arguments;
-get_arguments({yield, _,  _, Arguments, _}) ->
+get_arguments({call, _, _, _, Arguments, _}) ->
+    Arguments;
+get_arguments({yield, _, _, Arguments}) ->
+    Arguments;
+get_arguments({yield, _, _, Arguments, _}) ->
+    Arguments;
+get_arguments({error, _, _, _, _, Arguments}) ->
+    Arguments;
+get_arguments({error, _, _, _, _, Arguments, _}) ->
     Arguments;
 get_arguments(_) ->
     undefined.
 
-get_argumentskw({yield, _,  _, _, ArgumentsKw}) ->
+get_argumentskw({call, _, _, _, _, ArgumentsKw}) ->
+    ArgumentsKw;
+get_argumentskw({yield, _, _, _, ArgumentsKw}) ->
+    ArgumentsKw;
+get_argumentskw({error, _, _, _, _, _, ArgumentsKw}) ->
     ArgumentsKw;
 get_argumentskw(_) ->
     undefined.
+
+
+
 
 store_invocation(Invoc) ->
     NewId = ctr_utils:gen_global_id(),
