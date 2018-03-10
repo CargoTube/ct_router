@@ -39,10 +39,10 @@ handle_message(publish, Message, Session) ->
 
 unsubscribe_all(Session) ->
     Subs = ctr_session:get_subscriptions(Session),
-    PeerAtGate = ctr_session:get_peer(Session),
+    SessionId = ctr_session:get_id(Session),
 
     Delete = fun(SubId, ok) ->
-                     delete_subscription(SubId, PeerAtGate),
+                     delete_subscription(SubId, SessionId),
                      ok
              end,
     lists:foldl(Delete, ok, Subs),
@@ -54,80 +54,23 @@ init() ->
 
 do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
     lager:debug("broker: subscribe ~p ~p", [Uri, Options]),
-    PeerAtGate = ctr_session:get_peer(Session),
+    SessionId = ctr_session:get_id(Session),
     Realm = ctr_session:get_realm(Session),
-    NewId = ctr_utils:gen_global_id(),
-
-    MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
-
     NewSub = #ctr_subscription{
-                id = NewId,
                 uri = Uri,
                 realm = Realm,
                 created = calendar:universal_time(),
-                subscribers = [PeerAtGate]
+                subscribers = [SessionId]
                },
-
-    Subscribe =
-        fun() ->
-                case mnesia:select(ctr_subscription, MatchSpec, write) of
-                    [#ctr_subscription{id = Id,
-                                   subscribers = Subs } = Subscription] ->
-                        NewSubs = [ PeerAtGate |
-                                    lists:delete(PeerAtGate, Subs)],
-                        ok = mnesia:write(
-                               Subscription#ctr_subscription{
-                                 subscribers = NewSubs
-                                }
-                              ),
-                        {added, Id};
-                    [] ->
-                        case mnesia:wread({ctr_subscription, NewId}) of
-                            [] ->
-                                ok = mnesia:write(NewSub),
-                                {created, NewSub};
-                            _ ->
-                                {error, id_exists}
-                        end
-                end
-        end,
-    Result = mnesia:transaction(Subscribe),
+    Result = store_subscription(NewSub),
     handle_subscribe_result(Result, Msg, Session).
 
 
 do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
     lager:debug("broker: unsubscribe ~p ~p", [ReqId, SubId]),
-    PeerAtGate = ctr_session:get_peer(Session),
-    Result = delete_subscription(SubId, PeerAtGate),
+    SessionId = ctr_session:get_id(Session),
+    Result = delete_subscription(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
-
-
-delete_subscription(SubId, PeerAtGate) ->
-    Unsubscribe =
-        fun() ->
-                case mnesia:wread({ctr_subscription, SubId}) of
-                    [#ctr_subscription{subscribers = Subs } = Subscription] ->
-                        NewSubs = lists:delete(PeerAtGate, Subs),
-                        NewSubscription = Subscription#ctr_subscription{
-                                            subscribers = NewSubs
-                                           },
-                        case NewSubs of
-                            [] ->
-                                mnesia:delete({ctr_subscription, SubId}),
-                                {deleted, NewSubscription};
-
-                            _ ->
-                                ok = mnesia:write(NewSubscription),
-                                {removed, NewSubscription}
-                        end;
-                    [] ->
-                        {error, not_found}
-                end
-        end,
-    mnesia:transaction(Unsubscribe).
 
 
 
@@ -176,26 +119,25 @@ do_publish(Msg, Session) ->
     handle_publish_result(Result, Msg, Session).
 
 
-handle_subscribe_result({atomic, {added, SubId}}, Msg, Session) ->
+handle_subscribe_result({added, Subscription}, Msg, Session) ->
+    #ctr_subscription{ id = SubId } = Subscription,
     send_subscribed(Msg, SubId, Session);
-handle_subscribe_result({atomic, {created, Subscription}}, Msg, Session) ->
+handle_subscribe_result({created, Subscription}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     %% TODO: meta events
-    send_subscribed(Msg,SubId, Session);
-handle_subscribe_result({atomic, {error, id_exists}}, Msg, Session) ->
-    do_subscribe(Msg, Session).
+    send_subscribed(Msg,SubId, Session).
 
 
 
-handle_unsubscribe_result({atomic, {removed, Subscription}}, Msg, Session) ->
+handle_unsubscribe_result({removed, Subscription}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     send_unsubscribed(Msg, SubId, Session);
-handle_unsubscribe_result({atomic, {deleted, Subscription}}, Msg, Session) ->
+handle_unsubscribe_result({deleted, Subscription}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     send_unsubscribed(Msg, SubId, Session),
     %% TODO: meta events
     ok;
-handle_unsubscribe_result({atomic, {error, not_found}}, Msg, Session) ->
+handle_unsubscribe_result({error, not_found}, Msg, Session) ->
     {unsubscribe, _, SubId} = Msg,
     HasSubscription = ctr_session:has_subscription(SubId, Session),
     maybe_send_unsubscribe(HasSubscription, Msg, SubId, Session).
@@ -234,13 +176,22 @@ maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
     ok.
 
 send_event(Msg, SubId, PubId, Subs0, Session) ->
-    Peer = ctr_session:get_peer(Session),
-    Subs = lists:delete(Peer, Subs0),
+    SessionId = ctr_session:get_id(Session),
+    Subs = lists:delete(SessionId, Subs0),
     Arguments = get_publish_arguments(Msg),
     ArgumentsKw = get_publish_argumentskw(Msg),
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
     lager:debug("broker: sending event to ~p",[Subs]),
-    ct_router:to_peer(Subs, {to_peer, Event}),
+    Send =
+        fun(SessId, _) ->
+                case ctr_session:lookup(SessId) of
+                    {ok, Session} ->
+                        ct_router:to_session(Session, Event);
+                    _ ->
+                        ok
+                end
+        end,
+    lists:foldl(Send, ok, Subs),
     ok.
 
 maybe_send_published(true, Msg, PubId, Session) ->
@@ -267,6 +218,88 @@ get_publish_argumentskw(_) ->
 wants_acknowledge(Msg) ->
     Options = erlang:element(3, Msg),
     maps:get(acknowledge, Options, false).
+
+
+store_subscription(Sub0) ->
+    #ctr_subscription{
+       uri = Uri,
+       realm = Realm,
+       subscribers = [SessionId]
+      } = Sub0,
+    NewId = ctr_utils:gen_global_id(),
+    NewSub = Sub0#ctr_subscription{id = NewId},
+
+    MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+
+
+    Store =
+        fun() ->
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
+                    [#ctr_subscription{subscribers = Subs } = Subscription] ->
+                        NewSubs = [ SessionId |
+                                    lists:delete(SessionId, Subs)],
+                        NewSubscription = Subscription#ctr_subscription{
+                                            subscribers = NewSubs
+                                           },
+                        ok = mnesia:write(NewSubscription),
+                        {added, NewSubscription};
+                    [] ->
+                        case mnesia:wread({ctr_subscription, NewId}) of
+                            [] ->
+                                ok = mnesia:write(NewSub),
+                                {created, NewSub};
+                            _ ->
+                                {error, id_exists}
+                        end
+                end
+        end,
+    Result = mnesia:transaction(Store),
+    handle_store_result(Result, Sub0).
+
+handle_store_result({atomic, {created, Subscription}}, _) ->
+    {created, Subscription};
+handle_store_result({atomic, {added, Subscription}}, _) ->
+    {added, Subscription};
+handle_store_result({atomic, {error, id_exists}}, Subscription) ->
+    store_subscription(Subscription).
+
+
+delete_subscription(SubId, SessionId) ->
+    Delete =
+        fun() ->
+                case mnesia:wread({ctr_subscription, SubId}) of
+                    [#ctr_subscription{subscribers = Subs } = Subscription] ->
+                        NewSubs = lists:delete(SessionId, Subs),
+                        NewSubscription = Subscription#ctr_subscription{
+                                            subscribers = NewSubs
+                                           },
+                        case NewSubs of
+                            [] ->
+                                mnesia:delete({ctr_subscription, SubId}),
+                                {deleted, NewSubscription};
+
+                            _ ->
+                                ok = mnesia:write(NewSubscription),
+                                {removed, NewSubscription}
+                        end;
+                    [] ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(Delete),
+    handle_delete_result(Result).
+
+
+handle_delete_result({atomic, {deleted, Subscription}}) ->
+    {deleted, Subscription};
+handle_delete_result({atomic, {removed, Subscription}}) ->
+    {removed, Subscription};
+handle_delete_result({atomic, {error, not_found}}) ->
+    {error, not_found}.
+
 
 
 create_table() ->
