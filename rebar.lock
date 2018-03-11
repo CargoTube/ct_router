@@ -1,7 +1,7 @@
 {"1.1.0",
 [{<<"ct_msg">>,
   {git,"https://github.com/CargoTube/ct_msg.git",
-       {ref,"481b631520c405e2bc2c7b1b41d192b1b144689e"}},
+       {ref,"729f450f6f33daae848cfcbaef77dab7a500422d"}},
   0},
  {<<"eper">>,{pkg,<<"eper">>,<<"0.94.0">>},0},
  {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},1},

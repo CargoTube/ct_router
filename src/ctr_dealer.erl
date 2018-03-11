@@ -74,9 +74,9 @@ do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
 
 
 
-do_call(Msg, Session) ->
-    call = erlang:element(1, Msg),
-    Result = find_callee(Msg, Session),
+do_call({call, _ReqId, _Options, Procedure, _Arguments, _ArgumentsKw} = Msg,
+        Session) ->
+    Result = find_callee(Procedure, Session),
     handle_call_callee(Result, Msg, Session).
 
 
@@ -169,9 +169,7 @@ handle_store_result({atomic, {error, id_exists}}, Registration) ->
     store_registration(Registration).
 
 
-find_callee(Msg, Session) ->
-    call = erlang:element(1, Msg),
-    Procedure = erlang:element(4, Msg),
+find_callee(Procedure, Session) ->
     Realm = ctr_session:get_realm(Session),
 
     MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},

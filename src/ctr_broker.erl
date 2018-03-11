@@ -34,7 +34,7 @@ init() ->
     create_table().
 
 
-do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
+do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     SessionId = ctr_session:get_id(Session),
     Realm = ctr_session:get_realm(Session),
     NewSub = #ctr_subscription{
@@ -47,18 +47,16 @@ do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
     handle_subscribe_result(Result, Msg, Session).
 
 
-do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
+do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
     SessionId = ctr_session:get_id(Session),
     Result = delete_subscription(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
 
 
 
-do_publish(Msg, Session) ->
+do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
+           Session) ->
     Realm = ctr_session:get_realm(Session),
-    Topic = get_publish_topic(Msg),
-    Arguments = get_publish_arguments(Msg),
-    ArgumentsKw = get_publish_argumentskw(Msg),
     NewPubId = ctr_utils:gen_global_id(),
     SessionId = ctr_session:get_id(Session),
 
@@ -78,8 +76,9 @@ do_publish(Msg, Session) ->
        subs = Subs
       } = Publication,
     send_event(Msg, SubId, PubId, Subs, Session),
-    WantAcknowledge = wants_acknowledge(Msg),
-    maybe_send_published(WantAcknowledge, Msg, PubId, Session).
+
+    WantAcknowledge = maps:get(acknowledge, Options, false),
+    maybe_send_published(WantAcknowledge, ReqId, PubId, Session).
 
 
 handle_subscribe_result({added, Subscription}, Msg, Session) ->
@@ -129,11 +128,10 @@ maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
     ok = ct_router:to_session(Session, Error),
     ok.
 
-send_event(Msg, SubId, PubId, Subs0, Session) ->
+send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs0,
+           Session) ->
     SessionId = ctr_session:get_id(Session),
     Subs = lists:delete(SessionId, Subs0),
-    Arguments = get_publish_arguments(Msg),
-    ArgumentsKw = get_publish_argumentskw(Msg),
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
     Send =
         fun(SessId, _) ->
@@ -147,31 +145,10 @@ send_event(Msg, SubId, PubId, Subs0, Session) ->
     lists:foldl(Send, ok, Subs),
     ok.
 
-maybe_send_published(true, Msg, PubId, Session) ->
-    {ok, RequestId} = ct_msg:get_request_id(Msg),
+maybe_send_published(true, RequestId, PubId, Session) ->
     ok = ct_router:to_session(Session, ?PUBLISHED(RequestId, PubId));
 maybe_send_published(false, _, _, _) ->
     ok.
-
-get_publish_topic(PublishMsg) ->
-    erlang:element(4, PublishMsg).
-
-get_publish_arguments({publish, _, _, _, Arguments}) ->
-    Arguments;
-get_publish_arguments({publish, _, _, _, Arguments, _}) ->
-    Arguments;
-get_publish_arguments(_) ->
-    undefined.
-
-get_publish_argumentskw({publish, _, _, _, _, ArgumentsKw}) ->
-    ArgumentsKw;
-get_publish_argumentskw(_) ->
-    undefined.
-
-wants_acknowledge(Msg) ->
-    Options = erlang:element(3, Msg),
-    maps:get(acknowledge, Options, false).
-
 
 store_subscription(Sub0) ->
     #ctr_subscription{

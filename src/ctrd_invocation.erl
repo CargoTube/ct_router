@@ -15,11 +15,8 @@
 init() ->
     create_table().
 
-new(RegistrationId, CalleeIds, Msg, CallerSession) ->
-    {ok, CallerReqId} = ct_msg:get_request_id(Msg),
-    %% Options = erlang:element(3, Msg),
-    Arguments = get_arguments(Msg),
-    ArgumentsKw = get_argumentskw(Msg),
+new(RegistrationId, CalleeIds, {call, CallerReqId, _Options, _Procedure,
+                                Arguments, ArgumentsKw} , CallerSession) ->
     Realm = ctr_session:get_realm(CallerSession),
     CallerSessId = ctr_session:get_id(CallerSession),
 
@@ -33,27 +30,15 @@ new(RegistrationId, CalleeIds, Msg, CallerSession) ->
     send_invocation(Invoc, RegistrationId, #{}, Arguments, ArgumentsKw),
     ok.
 
-invocation_error(Msg, CalleeSession) ->
+invocation_error({error, invocation, InvocId, ErrorUri, Arguments, ArgumentsKw},
+                 CalleeSession) ->
     CalleeSessId = ctr_session:get_id(CalleeSession),
-    error = erlang:element(1, Msg),
-    invocation = erlang:element(2, Msg),
-    InvocId = erlang:element(3, Msg),
-    %% Details = erlang:element(4, Msg),
-    ErrorUri = erlang:element(5, Msg),
-    Arguments = get_arguments(Msg),
-    ArgumentsKw = get_argumentskw(Msg),
-
     Result = find_invocation(InvocId, CalleeSessId),
     maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
 
 
-yield(Msg, CalleeSession) ->
+yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
     CalleeSessId = ctr_session:get_id(CalleeSession),
-    yield = erlang:element(1, Msg),
-    InvocId = erlang:element(2, Msg),
-    %% Options = erlang:element(3, Msg),
-    Arguments = get_arguments(Msg),
-    ArgumentsKw = get_argumentskw(Msg),
 
     Result = find_invocation(InvocId, CalleeSessId),
     maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
@@ -100,32 +85,6 @@ maybe_send({ok, Session}, Msg) ->
     ct_router:to_session(Session, Msg);
 maybe_send(_, _) ->
     ok.
-
-
-get_arguments({call, _, _, _, Arguments}) ->
-    Arguments;
-get_arguments({call, _, _, _, Arguments, _}) ->
-    Arguments;
-get_arguments({yield, _, _, Arguments}) ->
-    Arguments;
-get_arguments({yield, _, _, Arguments, _}) ->
-    Arguments;
-get_arguments({error, _, _, _, _, Arguments}) ->
-    Arguments;
-get_arguments({error, _, _, _, _, Arguments, _}) ->
-    Arguments;
-get_arguments(_) ->
-    undefined.
-
-get_argumentskw({call, _, _, _, _, ArgumentsKw}) ->
-    ArgumentsKw;
-get_argumentskw({yield, _, _, _, ArgumentsKw}) ->
-    ArgumentsKw;
-get_argumentskw({error, _, _, _, _, _, ArgumentsKw}) ->
-    ArgumentsKw;
-get_argumentskw(_) ->
-    undefined.
-
 
 
 
