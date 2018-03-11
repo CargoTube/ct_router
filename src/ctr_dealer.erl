@@ -49,7 +49,6 @@ unregister_all(Session) ->
 
 
 do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
-    lager:debug("dealer: register ~p ~p", [Procedure, Options]),
     SessId = ctr_session:get_id(Session),
     Realm = ctr_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
@@ -77,7 +76,6 @@ handle_register_result({error, procedure_exists}, Msg, Session) ->
     ok.
 
 do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
-    lager:debug("dealer: unregister ~p ~p", [ReqId, RegId]),
     SessId = ctr_session:get_id(Session),
     Result = delete_registration(RegId, SessId),
     handle_unregister_result(Result, Msg, Session).
@@ -210,7 +208,6 @@ handle_find_result({atomic, {error, not_found}}) ->
 
 
 delete_registration(RegId, SessId) ->
-    lager:debug("dealer: delete registration ~p",[RegId]),
     Unregister =
         fun() ->
                 case mnesia:wread({ctr_registration, RegId}) of

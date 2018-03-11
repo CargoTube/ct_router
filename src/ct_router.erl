@@ -46,7 +46,6 @@ to_session(Session, Message) ->
 to_peer([], _Message) ->
     ok;
 to_peer([PeerAtGate | Tail], Message) ->
-    lager:debug("[~p] ~p ! ~p", [self(), PeerAtGate, Message]),
     PeerAtGate ! Message,
     to_peer(Tail, Message);
 to_peer(PeerAtGate, Message) ->

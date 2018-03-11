@@ -8,14 +8,12 @@
 -include_lib("ct_msg/include/ct_msg.hrl").
 
 handle_hello({hello, RealmName, Details}, Peer) ->
-    lager:debug("auth: ~p hello - ~p ~p",[Peer, RealmName, Details]),
     Result = ctr_realm:lookup(RealmName),
     SessionResult = maybe_create_session(Result, Details, Peer),
     send_welcome_challenge_or_abort(SessionResult, Peer).
 
 
-handle_authenticate(Authenticate, PeerAtGate) ->
-    lager:debug("auth: ~p authenticate - ~p",[PeerAtGate, Authenticate]),
+handle_authenticate(_Authenticate, PeerAtGate) ->
     ct_router:to_peer(PeerAtGate ,{to_peer, ?ABORT(#{}, canceled)}),
     ok.
 
@@ -24,14 +22,11 @@ is_message_allowed(_Message, _Session) ->
     true.
 
 maybe_create_session({ok, Realm}, Details, Peer) ->
-    lager:debug("auth: ~p realm ok",[Peer]),
     RealmName = ctr_realm:get_name(Realm),
     {ok, Session} = ctr_session:new(RealmName, Details, Peer),
     AuthMethod = get_auth_method(Realm, Details),
-    lager:debug("auth: ~p authmethod ~p",[Peer, AuthMethod]),
     {ok, Session, AuthMethod, Realm};
-maybe_create_session(_Result, _Details, Peer) ->
-    lager:debug("auth: ~p no realm",[Peer]),
+maybe_create_session(_Result, _Details, _Peer) ->
     {error, no_such_realm}.
 
 
@@ -68,8 +63,7 @@ get_client_authmethods(Details, _) ->
     maps:get(<<"authmethods">>, Details, []).
 
 
-send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, Peer) ->
-    lager:debug("auth: ~p anonymous login",[Peer]),
+send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, _Peer) ->
     {ok, NewSession} = ctr_session:set_auth_details(anonymous, anonymous,
                                                     anonymous, Session),
     RoleResult = ctr_realm:get_role(anonymous, Realm),
@@ -84,22 +78,17 @@ send_welcome_challenge_or_abort( _, PeerAtGate) ->
 maybe_authenticate_session({ok, Role}, Session) ->
     {ok, NewSession} = ctr_session:authenticate(Role, Session),
     SessionId = ctr_session:get_id(NewSession),
-    lager:debug("auth: ~p anonymous as role ~p ",
-                [ctr_session:get_peer(NewSession), Role]),
     ct_router:to_session(Session,?WELCOME( SessionId, #{})),
     ok;
 maybe_authenticate_session(_, Session) ->
-    lager:debug("auth: ~p no role",[ctr_session:get_peer(Session)]),
     abort_session(Session).
 
 
 abort_session(Session) ->
     Peer = ctr_session:get_peer(Session),
-    lager:debug("auth: ~p  close session",[Peer]),
     ok = ctr_session:close(Session),
     send_abort(Peer, canceled).
 
 send_abort(Peer, Reason) ->
-    lager:debug("auth: ~p  sending abort",[Peer]),
     ct_router:to_peer(Peer, {to_peer, ?ABORT(#{}, Reason)}),
     ok.

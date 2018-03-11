@@ -53,12 +53,10 @@ new(RealmName, Details, PeerAtGate)  ->
                         realm = RealmName,
                         details = Details,
                         peer_at_gate = PeerAtGate },
-    lager:debug("session: starting ~p", [Session]),
     try_saving_session(Session, true).
 
 
 close(#ctr_session{id = SessionId} = Session) ->
-    lager:debug("session: closing ~p", [Session]),
     ctr_broker:unsubscribe_all(Session),
     ctr_dealer:unregister_all(Session),
     %% ct_router:perform_testatment(Session),
@@ -165,7 +163,6 @@ maybe_retry_saving_session({atomic, {error, exists}}, Session, true) ->
     NewSession = Session#ctr_session{id = Id},
     try_saving_session(NewSession, true);
 maybe_retry_saving_session(Other, Session, New) ->
-    lager:debug("session: saving error [new=~p], ~p ~p", [New, Other, Session]),
     {error, saving}.
 
 delete_by_id(Id) ->

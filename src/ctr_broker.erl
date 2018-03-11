@@ -55,7 +55,6 @@ init() ->
 
 
 do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
-    lager:debug("broker: subscribe ~p ~p", [Uri, Options]),
     SessionId = ctr_session:get_id(Session),
     Realm = ctr_session:get_realm(Session),
     NewSub = #ctr_subscription{
@@ -69,7 +68,6 @@ do_subscribe({subscribe, _RequestId, Options, Uri} = Msg, Session) ->
 
 
 do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
-    lager:debug("broker: unsubscribe ~p ~p", [ReqId, SubId]),
     SessionId = ctr_session:get_id(Session),
     Result = delete_subscription(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
@@ -77,7 +75,6 @@ do_unsubscribe({unsubscribe, ReqId, SubId} = Msg , Session) ->
 
 
 do_publish(Msg, Session) ->
-    lager:debug("broker: publish ~p", [Msg]),
     Realm = ctr_session:get_realm(Session),
     Topic = get_publish_topic(Msg),
     Arguments = get_publish_arguments(Msg),
@@ -158,7 +155,6 @@ send_event(Msg, SubId, PubId, Subs0, Session) ->
     Arguments = get_publish_arguments(Msg),
     ArgumentsKw = get_publish_argumentskw(Msg),
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
-    lager:debug("broker: sending event to ~p",[Subs]),
     Send =
         fun(SessId, _) ->
                 case ctr_session:lookup(SessId) of
