@@ -2,6 +2,7 @@
 
 
 -include_lib("ct_msg/include/ct_msg.hrl").
+-include("ct_router.hrl").
 
 -export([
          handle_message/3,
@@ -9,15 +10,6 @@
 
          init/0
         ]).
-
--record(ctr_registration, {
-          id = undefined,
-          realm = undefined,
-          procedure = undefined,
-          match = exact,
-          created = undefined,
-          callee_sess_ids = []
-         }).
 
 init() ->
     ctrd_invocation:init(),

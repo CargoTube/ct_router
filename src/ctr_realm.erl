@@ -1,5 +1,7 @@
 -module(ctr_realm).
 
+-include("ct_router.hrl").
+
 -export([new/3,
          close/1,
 
@@ -11,11 +13,6 @@
          init/0
         ]).
 
-
--record(ctr_realm, {name = undefined,
-                    authmethods = [],
-                    authmapping = []
-                   }).
 
 init() ->
     create_table().

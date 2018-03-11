@@ -31,7 +31,6 @@ stop_mnesia() ->
 create_schema_if_needed(true) ->
     ok;
 create_schema_if_needed(false) ->
-    lager:info("creating schema and tables."),
     ok = mnesia:create_schema([node()]),
     ok = start_mnesia(),
     ok.

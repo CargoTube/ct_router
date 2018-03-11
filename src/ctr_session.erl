@@ -1,5 +1,7 @@
 -module(ctr_session).
 
+-include("ct_router.hrl").
+
 -export([new/3,
          close/1,
 
@@ -27,19 +29,6 @@
          init/0
         ]).
 
-
--record(ctr_session, {id = undefined,
-                      realm = undefined,
-                      details = #{},
-                      authid = undefined,
-                      authrole = undefined,
-                      authprovider = undefined,
-                      authmethod = undefined,
-                      authenticated = false,
-                      subscriptions = [],
-                      registrations = [],
-                      peer_at_gate = undefined
-                     }).
 
 init() ->
     create_table().

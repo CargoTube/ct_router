@@ -2,6 +2,7 @@
 
 
 -include_lib("ct_msg/include/ct_msg.hrl").
+-include("ct_router.hrl").
 
 -export([
          handle_message/3,
@@ -9,27 +10,6 @@
 
          init/0
         ]).
-
--record(ctr_subscription, {
-          id = undefined,
-          realm = undefined,
-          uri = undefined,
-          match = exact,
-          created = undefined,
-          subscribers = []
-         }).
-
--record(ctr_publication, {
-          id = undefined,
-          pub_sess_id = undefined,
-          subs = [],
-          realm = undefined,
-          topic = undefined,
-          ts = undefined,
-          sub_id = undefined,
-          arguments = undefined,
-          argumentskw = undefined
-         }).
 
 handle_message(subscribe, Message, Session) ->
     do_subscribe(Message, Session);

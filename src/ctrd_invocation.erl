@@ -2,6 +2,7 @@
 
 
 -include_lib("ct_msg/include/ct_msg.hrl").
+-include("ct_router.hrl").
 
 -export([
          new/4,
@@ -10,15 +11,6 @@
 
          init/0
         ]).
-
--record(ctrd_invocation, {
-          id = undefined,
-          caller_sess_id = undefined,
-          caller_req_id = undefined,
-          callees = [],
-          results = [],
-          realm = undefined
-         }).
 
 init() ->
     create_table().
