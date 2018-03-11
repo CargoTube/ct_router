@@ -78,7 +78,11 @@ send_welcome_challenge_or_abort( _, PeerAtGate) ->
 maybe_authenticate_session({ok, Role}, Session) ->
     {ok, NewSession} = ctr_session:authenticate(Role, Session),
     SessionId = ctr_session:get_id(NewSession),
-    ct_router:to_session(Session,?WELCOME( SessionId, #{})),
+    Details = #{
+      agent => ct_router:agent_identification(),
+      roles => ct_router:agent_roles()
+     },
+    ct_router:to_session(Session,?WELCOME( SessionId, Details)),
     ok;
 maybe_authenticate_session(_, Session) ->
     abort_session(Session).
