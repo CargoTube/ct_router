@@ -7,10 +7,8 @@
   {applications,
    [kernel,
     stdlib,
-    jobs,
     lager,
-    mnesia,
-    eper
+    mnesia
    ]},
   {env,[]},
   {modules, []},

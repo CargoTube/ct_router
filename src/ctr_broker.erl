@@ -83,11 +83,13 @@ do_publish(Msg, Session) ->
     Arguments = get_publish_arguments(Msg),
     ArgumentsKw = get_publish_argumentskw(Msg),
     NewPubId = ctr_utils:gen_global_id(),
+    SessionId = ctr_session:get_id(Session),
 
     NewPub = #ctr_publication{
                 realm = Realm,
                 topic = Topic,
                 id = NewPubId,
+                pub_sess_id = SessionId,
                 ts = calendar:universal_time(),
                 arguments = Arguments,
                 argumentskw = ArgumentsKw},
