@@ -57,13 +57,11 @@ do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
 do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
            Session) ->
     Realm = ctr_session:get_realm(Session),
-    NewPubId = ctr_utils:gen_global_id(),
     SessionId = ctr_session:get_id(Session),
 
     NewPub = #ctr_publication{
                 realm = Realm,
                 topic = Topic,
-                id = NewPubId,
                 pub_sess_id = SessionId,
                 ts = calendar:universal_time(),
                 arguments = Arguments,
@@ -214,7 +212,7 @@ store_publication(Pub0) ->
     GiveObject = ['$_'],
     MatSpec = [{MatchHead, Guard, GiveObject}],
 
-    Lookup =
+    LookupAndStore =
         fun() ->
                 case mnesia:wread({ctr_publication, NewPubId}) of
                     [] ->
@@ -222,7 +220,7 @@ store_publication(Pub0) ->
                             [#ctr_subscription{id = SubId,
                                                subscribers = Subs}] ->
                                 UpdatedPub =
-                                    NewPub #ctr_publication{sub_id=SubId,
+                                    NewPub#ctr_publication{sub_id=SubId,
                                                             subs = Subs
                                                            },
                                 ok = mnesia:write(UpdatedPub),
@@ -236,7 +234,7 @@ store_publication(Pub0) ->
                         {error, pub_id_exists}
                 end
         end,
-    Result = mnesia:transaction(Lookup),
+    Result = mnesia:transaction(LookupAndStore),
     handle_publication_store_result(Result, Pub0).
 
 
