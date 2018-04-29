@@ -134,8 +134,8 @@ send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs0,
     Send =
         fun(SessId, _) ->
                 case ctr_session:lookup(SessId) of
-                    {ok, Session} ->
-                        ct_router:to_session(Session, Event);
+                    {ok, Subscriber} ->
+                        ct_router:to_session(Subscriber, Event);
                     _ ->
                         ok
                 end
