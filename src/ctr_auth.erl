@@ -9,7 +9,7 @@
 
 handle_hello({hello, RealmName, Details}, Peer) ->
     Result = ctr_realm:lookup(RealmName),
-    SessionResult = maybe_create_session(Result, Details, Peer),
+    SessionResult = handle_realm(Result, Details, Peer),
     send_welcome_challenge_or_abort(SessionResult, Peer).
 
 
@@ -21,13 +21,18 @@ is_message_allowed(_Message, _Session) ->
     %% TODO: implement
     true.
 
-maybe_create_session({ok, Realm}, Details, Peer) ->
+handle_realm({ok, Realm}, Details, Peer) ->
+    AuthMethod = get_auth_method(Realm, Details),
+    maybe_create_session(AuthMethod, Realm, Details, Peer);
+handle_realm(_Result, _Details, _Peer) ->
+    {error, no_such_realm}.
+
+maybe_create_session(none, _Realm, _Details, _Peer) ->
+    {error, no_such_auth_method};
+maybe_create_session(AuthMethod, Realm, Details, Peer) ->
     RealmName = ctr_realm:get_name(Realm),
     {ok, Session} = ctr_session:new(RealmName, Details, Peer),
-    AuthMethod = get_auth_method(Realm, Details),
-    {ok, Session, AuthMethod, Realm};
-maybe_create_session(_Result, _Details, _Peer) ->
-    {error, no_such_realm}.
+    {ok, Session, AuthMethod, Realm}.
 
 
 get_auth_method(Realm, Details) ->
@@ -70,6 +75,8 @@ send_welcome_challenge_or_abort({ok, Session, anonymous, Realm}, _Peer) ->
     maybe_authenticate_session(RoleResult, NewSession);
 send_welcome_challenge_or_abort({error, no_such_realm}, PeerAtGate) ->
     send_abort(PeerAtGate, no_such_realm);
+send_welcome_challenge_or_abort({error, no_such_auth_method}, PeerAtGate) ->
+    send_abort(PeerAtGate, invalid_argument);
 send_welcome_challenge_or_abort({ok, Session, _, _}, _PeerAtGate) ->
     abort_session(Session);
 send_welcome_challenge_or_abort( _, PeerAtGate) ->
