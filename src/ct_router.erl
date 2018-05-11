@@ -24,8 +24,33 @@ agent_identification() ->
 
 agent_roles() ->
     #{
-       broker => #{},
-       dealer => #{}
+       broker => #{
+         features => #{
+           publisher_exclusion => false,
+           publisher_identification => false,
+           publication_trustlevels => false,
+           subscription_meta_api => false,
+           pattern_based_subscription => false,
+           sharded_subscription => false,
+           event_history => false,
+           session_meta_apit => false
+          }
+        },
+       dealer => #{
+         features => #{
+           progressive_call_results => false,
+           call_timeout => false,
+           call_canceling => false,
+           caller_identification => false,
+           call_trustlevel => false,
+           registration_meta_api => false,
+           pattern_based_registration => false,
+           shared_registration => false,
+           sharded_registration => false,
+           testament_meta_api => false,
+           session_meta_apit => false
+           }
+        }
      }.
 
 
