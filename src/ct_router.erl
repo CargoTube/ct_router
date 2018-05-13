@@ -90,9 +90,8 @@ handle_auth_result({ok, Session}, _PeerAtGate) ->
       roles => ct_router:agent_roles()
      },
     to_session(Session,?WELCOME( SessionId, Details));
-
 handle_auth_result({abort, Reason}, PeerAtGate) ->
-    to_peer([PeerAtGate], ?ABORT(#{}, Reason)).
+    message_to_peer(PeerAtGate, ?ABORT(#{}, Reason)).
 
 
 
@@ -100,6 +99,9 @@ handle_auth_result({abort, Reason}, PeerAtGate) ->
 to_session(Session, Message) ->
     PeerAtGate = cta_session:get_peer(Session),
     to_peer([PeerAtGate], {to_peer, Message}).
+
+message_to_peer(Peer, Message) ->
+    to_peer([Peer], {to_peer, Message}).
 
 to_peer([], _Message) ->
     ok;
