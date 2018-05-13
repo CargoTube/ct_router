@@ -55,11 +55,11 @@ agent_roles() ->
 
 
 handle_hello(Hello, PeerAtGate) ->
-    ctr_auth:handle_hello(Hello, PeerAtGate).
+    ct_auth:handle_hello(Hello, PeerAtGate).
 
 handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
-    ctr_auth:handle_authenticate(Authenticate, Session, PeerAtGate).
+    ct_auth:handle_authenticate(Authenticate, Session, PeerAtGate).
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
@@ -71,16 +71,21 @@ handle_session_closed(SessionId, PeerAtGate) ->
     ok.
 
 get_session(SessionId, PeerAtGate) ->
-    {ok, Session} = ctr_session:lookup(SessionId),
-    PeerAtGate = ctr_session:get_peer(Session),
+    {ok, Session} = cta_session:lookup(SessionId),
+    PeerAtGate = cta_session:get_peer(Session),
     Session.
 
 close_session(Session) ->
-    ctr_session:close(Session).
+    %% todo: unsubscribe all
+    %% todo: unregister all
+
+    Subscriptions = cta_session:get_subscriptions(Session),
+    Registrations = cta_session:get_registrations(Session),
+    cta_session:close(Session).
 
 
 to_session(Session, Message) ->
-    PeerAtGate = ctr_session:get_peer(Session),
+    PeerAtGate = cta_session:get_peer(Session),
     to_peer([PeerAtGate], {to_peer, Message}).
 
 to_peer([], _Message) ->
@@ -94,7 +99,13 @@ to_peer(PeerAtGate, Message) ->
 
 get_agent_version() ->
     {ok, Version} = application:get_key(vsn),
-    list_to_binary(application:get_env(cargotube, version, Version)).
+    ensure_binary(application:get_env(cargotube, version, Version)).
 
 get_agent_name() ->
-    list_to_binary(application:get_env(cargotube, name, "CargoTube.org")).
+    ensure_binary(application:get_env(cargotube, name, "CargoTube.org")).
+
+
+ensure_binary(Binary) when is_binary(Binary) ->
+    Binary;
+ensure_binary(List) when is_list(List) ->
+    list_to_binary(List).

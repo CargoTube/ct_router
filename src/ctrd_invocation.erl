@@ -17,8 +17,8 @@ init() ->
 
 new(RegistrationId, CalleeIds, {call, CallerReqId, _Options, _Procedure,
                                 Arguments, ArgumentsKw} , CallerSession) ->
-    Realm = ctr_session:get_realm(CallerSession),
-    CallerSessId = ctr_session:get_id(CallerSession),
+    Realm = cta_session:get_realm(CallerSession),
+    CallerSessId = cta_session:get_id(CallerSession),
 
     Invoc0 = #ctrd_invocation{
                 caller_sess_id = CallerSessId,
@@ -32,13 +32,13 @@ new(RegistrationId, CalleeIds, {call, CallerReqId, _Options, _Procedure,
 
 invocation_error({error, invocation, InvocId, ErrorUri, Arguments, ArgumentsKw},
                  CalleeSession) ->
-    CalleeSessId = ctr_session:get_id(CalleeSession),
+    CalleeSessId = cta_session:get_id(CalleeSession),
     Result = find_invocation(InvocId, CalleeSessId),
     maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
 
 
 yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
-    CalleeSessId = ctr_session:get_id(CalleeSession),
+    CalleeSessId = cta_session:get_id(CalleeSession),
 
     Result = find_invocation(InvocId, CalleeSessId),
     maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
@@ -78,7 +78,7 @@ send_invocation(Invocation, RegistrationId, Options, Args, ArgsKw) ->
 send_message([], _) ->
     ok;
 send_message([SessionId | Tail], Msg) ->
-    maybe_send(ctr_session:lookup(SessionId), Msg),
+    maybe_send(cta_session:lookup(SessionId), Msg),
     send_message(Tail, Msg).
 
 maybe_send({ok, Session}, Msg) ->

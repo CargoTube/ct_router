@@ -9,8 +9,8 @@
 
 
 handle_established(Type, Message, Session) ->
-    IsAuth = ctr_session:is_authenticated(Session),
-    IsAllowed = ctr_auth:is_message_allowed(Message, Session),
+    IsAuth = cta_session:is_authenticated(Session),
+    IsAllowed = ct_auth:is_message_allowed(Message, Session),
     maybe_handle_message(IsAuth, IsAllowed, Type, Message, Session).
 
 maybe_handle_message(true, true, Type, Message, Session) ->

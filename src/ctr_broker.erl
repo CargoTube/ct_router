@@ -20,8 +20,8 @@ handle_message(publish, Message, Session) ->
 
 
 unsubscribe_all(Session) ->
-    Subs = ctr_session:get_subscriptions(Session),
-    SessionId = ctr_session:get_id(Session),
+    Subs = cta_session:get_subscriptions(Session),
+    SessionId = cta_session:get_id(Session),
 
     Delete = fun(SubId, ok) ->
                      delete_subscription(SubId, SessionId),
@@ -35,8 +35,8 @@ init() ->
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
-    SessionId = ctr_session:get_id(Session),
-    Realm = ctr_session:get_realm(Session),
+    SessionId = cta_session:get_id(Session),
+    Realm = cta_session:get_realm(Session),
     NewSub = #ctr_subscription{
                 uri = Uri,
                 realm = Realm,
@@ -48,7 +48,7 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
 
 
 do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
-    SessionId = ctr_session:get_id(Session),
+    SessionId = cta_session:get_id(Session),
     Result = delete_subscription(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
 
@@ -56,8 +56,8 @@ do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
 
 do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
            Session) ->
-    Realm = ctr_session:get_realm(Session),
-    SessionId = ctr_session:get_id(Session),
+    Realm = cta_session:get_realm(Session),
+    SessionId = cta_session:get_id(Session),
 
     NewPub = #ctr_publication{
                 realm = Realm,
@@ -99,21 +99,21 @@ handle_unsubscribe_result({deleted, Subscription}, Msg, Session) ->
     ok;
 handle_unsubscribe_result({error, not_found}, Msg, Session) ->
     {unsubscribe, _, SubId} = Msg,
-    HasSubscription = ctr_session:has_subscription(SubId, Session),
+    HasSubscription = cta_session:has_subscription(SubId, Session),
     maybe_send_unsubscribe(HasSubscription, Msg, SubId, Session).
 
 
 
 send_subscribed(Msg, SubId, Session) ->
     %% TODO: meta events
-    {ok, NewSession} = ctr_session:add_subscription(SubId, Session),
+    {ok, NewSession} = cta_session:add_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?SUBSCRIBED(RequestId, SubId)),
     ok.
 
 send_unsubscribed(Msg, SubId, Session) ->
     %% TODO: meta events
-    {ok, NewSession} = ctr_session:remove_subscription(SubId, Session),
+    {ok, NewSession} = cta_session:remove_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNSUBSCRIBED(RequestId)),
     ok.
@@ -128,12 +128,12 @@ maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
 
 send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs0,
            Session) ->
-    SessionId = ctr_session:get_id(Session),
+    SessionId = cta_session:get_id(Session),
     Subs = lists:delete(SessionId, Subs0),
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
     Send =
         fun(SessId, _) ->
-                case ctr_session:lookup(SessId) of
+                case cta_session:lookup(SessId) of
                     {ok, Subscriber} ->
                         ct_router:to_session(Subscriber, Event);
                     _ ->
@@ -201,8 +201,8 @@ store_publication(Pub0) ->
        topic = Topic,
        pub_sess_id = SessId
       } = Pub0,
-    {ok, Session} = ctr_session:lookup(SessId),
-    Realm = ctr_session:get_realm(Session),
+    {ok, Session} = cta_session:lookup(SessId),
+    Realm = cta_session:get_realm(Session),
     NewPubId = ctr_utils:gen_global_id(),
 
     NewPub = Pub0#ctr_publication{id = NewPubId},

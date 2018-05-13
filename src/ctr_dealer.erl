@@ -29,8 +29,8 @@ handle_message(yield, Message, Session) ->
 
 
 unregister_all(Session) ->
-    Regs = ctr_session:get_registrations(Session),
-    SessId = ctr_session:get_id(Session),
+    Regs = cta_session:get_registrations(Session),
+    SessId = cta_session:get_id(Session),
 
     Delete = fun(RegId, ok) ->
                      delete_registration(RegId, SessId),
@@ -41,8 +41,8 @@ unregister_all(Session) ->
 
 
 do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
-    SessId = ctr_session:get_id(Session),
-    Realm = ctr_session:get_realm(Session),
+    SessId = cta_session:get_id(Session),
+    Realm = cta_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
 
 
@@ -68,7 +68,7 @@ handle_register_result({error, procedure_exists}, Msg, Session) ->
     ok.
 
 do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
-    SessId = ctr_session:get_id(Session),
+    SessId = cta_session:get_id(Session),
     Result = delete_registration(RegId, SessId),
     handle_unregister_result(Result, Msg, Session).
 
@@ -91,7 +91,7 @@ handle_unregister_result({atomic, {deleted, Registration}}, Msg, Session) ->
     ok;
 handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     {unregister, _, RegId} = Msg,
-    HasRegistration = ctr_session:has_registration(RegId, Session),
+    HasRegistration = cta_session:has_registration(RegId, Session),
     maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
 
 handle_call_callee({ok, Registration}, Msg, Session) ->
@@ -111,7 +111,7 @@ handle_call_callee({error, not_found}, Msg, Session) ->
 
 send_registered(Msg, RegId, Session) ->
     %% TODO: meta events
-    {ok, NewSession} = ctr_session:add_registration(RegId, Session),
+    {ok, NewSession} = cta_session:add_registration(RegId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?REGISTERED(RequestId, RegId)),
     ok.
@@ -126,7 +126,7 @@ maybe_send_unregistered(false, Msg, _RegId, Session) ->
 
 send_unregistered(Msg, RegId, Session) ->
     %% TODO: meta events
-    {ok, NewSession} = ctr_session:remove_registration(RegId, Session),
+    {ok, NewSession} = cta_session:remove_registration(RegId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNREGISTERED(RequestId)),
     ok.
@@ -170,7 +170,7 @@ handle_store_result({atomic, {error, id_exists}}, Registration) ->
 
 
 find_callee(Procedure, Session) ->
-    Realm = ctr_session:get_realm(Session),
+    Realm = cta_session:get_realm(Session),
 
     MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
     Guard = [],

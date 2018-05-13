@@ -14,10 +14,10 @@ init() ->
     ok.
 
 init_tables() ->
-    ctr_session:init(),
-    ctr_realm:init(),
     ctr_broker:init(),
     ctr_dealer:init(),
+    cta_session:init(),
+    cta_realm:init(),
     ok.
 
 
