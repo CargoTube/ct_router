@@ -55,11 +55,13 @@ agent_roles() ->
 
 
 handle_hello(Hello, PeerAtGate) ->
-    ct_auth:handle_hello(Hello, PeerAtGate).
+    AuthResult = ct_auth:handle_hello(Hello, PeerAtGate),
+    handle_auth_result(AuthResult, PeerAtGate).
 
 handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
-    ct_auth:handle_authenticate(Authenticate, Session, PeerAtGate).
+    AuthResult = ct_auth:handle_authenticate(Authenticate, Session, PeerAtGate),
+    handle_auth_result(AuthResult, PeerAtGate).
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
@@ -76,12 +78,23 @@ get_session(SessionId, PeerAtGate) ->
     Session.
 
 close_session(Session) ->
-    %% todo: unsubscribe all
-    %% todo: unregister all
-
-    Subscriptions = cta_session:get_subscriptions(Session),
-    Registrations = cta_session:get_registrations(Session),
+    ctr_broker:unsubscribe_all(Session),
+    ctr_dealer:unregister_all(Session),
     cta_session:close(Session).
+
+
+handle_auth_result({ok, Session}, _PeerAtGate) ->
+    SessionId = cta_session:get_id(Session),
+    Details = #{
+      agent => ct_router:agent_identification(),
+      roles => ct_router:agent_roles()
+     },
+    to_session(Session,?WELCOME( SessionId, Details));
+
+handle_auth_result({abort, Reason}, PeerAtGate) ->
+    to_peer([PeerAtGate], ?ABORT(#{}, Reason)).
+
+
 
 
 to_session(Session, Message) ->
