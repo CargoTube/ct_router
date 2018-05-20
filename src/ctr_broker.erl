@@ -62,6 +62,7 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
     NewPub = #ctr_publication{
                 realm = Realm,
                 topic = Topic,
+                options = Options,
                 pub_sess_id = SessionId,
                 ts = calendar:universal_time(),
                 arguments = Arguments,
@@ -71,8 +72,9 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
     #ctr_publication{
        id = PubId,
        sub_id = SubId,
-       subs = Subs
+       subs = AllSubs
       } = Publication,
+    Subs = ctrb_blackwhite:filter_subscriber(AllSubs, Options),
     send_event(Msg, SubId, PubId, Subs, Session),
 
     WantAcknowledge = maps:get(acknowledge, Options, false),

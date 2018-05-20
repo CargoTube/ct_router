@@ -30,6 +30,7 @@
 -record(ctr_publication, {
           id = undefined,
           pub_sess_id = undefined,
+          options = undefined,
           subs = [],
           realm = undefined,
           topic = undefined,
