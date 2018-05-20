@@ -90,7 +90,7 @@ handle_auth_result({ok, Session}, _PeerAtGate) ->
       agent => ct_router:agent_identification(),
       roles => ct_router:agent_roles()
      },
-    to_session(Session,?WELCOME( SessionId, Details));
+    to_session(Session, ?WELCOME(SessionId, Details));
 handle_auth_result({abort, Reason}, PeerAtGate) ->
     message_to_peer(PeerAtGate, ?ABORT(#{}, Reason)).
 

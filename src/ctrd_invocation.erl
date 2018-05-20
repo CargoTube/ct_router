@@ -49,7 +49,7 @@ maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
        caller_req_id = CallerReqId
       } = Invoc,
     ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
-    send_message([CallerSessId] ,ResultMsg),
+    send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_result(_, _, _, _) ->
     ok.
@@ -60,7 +60,7 @@ maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
        caller_req_id = CallerReqId
       } = Invoc,
     ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
-    send_message([CallerSessId] ,ResultMsg),
+    send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_error(_, _, _, _, _) ->
     ok.

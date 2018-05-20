@@ -39,10 +39,7 @@ do_filter_subscribers(Subs, [{eligible_authrole, all} | Tail]) ->
     do_filter_subscribers(Subs, Tail);
 do_filter_subscribers(Subs, [{exclude, Exclude} | Tail]) ->
     Filter = fun(Id) ->
-                     case lists:member(Id, Exclude) of
-                         true -> false;
-                         false -> true
-                     end
+                     not lists:member(Id, Exclude)
              end,
     run_filter(Filter, Subs, Tail);
 do_filter_subscribers(Subs, [{exclude_authid, Exclude} | Tail]) ->
@@ -50,10 +47,7 @@ do_filter_subscribers(Subs, [{exclude_authid, Exclude} | Tail]) ->
                      case cta_session:lookup(Id) of
                          {ok, Session} ->
                              AuthId = cta_session:get_authid(Session),
-                             case lists:member(AuthId, Exclude) of
-                                 true -> false;
-                                 false -> true
-                             end;
+                             not lists:member(AuthId, Exclude);
                          _ ->
                              false
                      end
@@ -64,10 +58,7 @@ do_filter_subscribers(Subs, [{exclude_authrole, Exclude} | Tail]) ->
                      case cta_session:lookup(Id) of
                          {ok, Session} ->
                              AuthRole = cta_session:get_authrole(Session),
-                             case lists:member(AuthRole, Exclude) of
-                                 true -> false;
-                                 false -> true
-                             end;
+                             not lists:member(AuthRole, Exclude);
                          _ ->
                              false
                      end

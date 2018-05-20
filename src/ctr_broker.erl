@@ -87,7 +87,7 @@ handle_subscribe_result({added, Subscription}, Msg, Session) ->
 handle_subscribe_result({created, Subscription}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     %% TODO: meta events
-    send_subscribed(Msg,SubId, Session).
+    send_subscribed(Msg, SubId, Session).
 
 
 
