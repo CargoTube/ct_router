@@ -1,4 +1,4 @@
--module(ctrb_blackwhite).
+-module(ctrb_blackwhite_pubex).
 
 -export([filter_subscriber/3]).
 
