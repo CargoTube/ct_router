@@ -74,7 +74,7 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
        sub_id = SubId,
        subs = AllSubs
       } = Publication,
-    Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, Session),
+    Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, SessionId),
     send_event(Msg, SubId, PubId, Subs),
 
     WantAcknowledge = maps:get(acknowledge, Options, false),

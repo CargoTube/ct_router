@@ -3,10 +3,9 @@
 -export([filter_subscriber/3]).
 
 
-filter_subscriber(Subs0, Options, Session) ->
-    SessionId = cta_session:get_id(Session),
-    Exclude = maps:get(exclude_me, Options, true),
-    Subs = maybe_exclude_publisher(Exclude, SessionId, Subs0),
+filter_subscriber(Subs0, Options, SessionId) ->
+    ExcludeMe = maps:get(exclude_me, Options, true),
+    Subs = maybe_exclude_publisher(ExcludeMe, SessionId, Subs0),
     Exclude = maps:get(exclude, Options, []),
     ExcludeAuthId = maps:get(exclude_authid, Options, []),
     ExcludeAuthRole = maps:get(exclude_authrole, Options, []),
