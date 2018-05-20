@@ -13,7 +13,7 @@ filter_subscriber(Subs, Options) ->
     FilterList = [{exclude, Exclude}, {exclude_authid, ExcludeAuthId},
                   {exclude_authrole, ExcludeAuthRole}, {eligible, Eligible},
                   {eligible_authid, EligibleAuthId},
-                  {eligible_authRole, EligibleAuthRole}],
+                  {eligible_authrole, EligibleAuthRole}],
     do_filter_subscribers(Subs, FilterList).
 
 do_filter_subscribers(Subs, []) ->
