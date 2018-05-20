@@ -15,7 +15,7 @@
 init() ->
     create_table().
 
-new(RegistrationId, CalleeIds, {call, CallerReqId, _Options, _Procedure,
+new(RegistrationId, CalleeIds, {call, CallerReqId, Options, _Procedure,
                                 Arguments, ArgumentsKw} , CallerSession) ->
     Realm = cta_session:get_realm(CallerSession),
     CallerSessId = cta_session:get_id(CallerSession),
@@ -27,8 +27,17 @@ new(RegistrationId, CalleeIds, {call, CallerReqId, _Options, _Procedure,
                 realm = Realm
                },
     {ok, Invoc} = store_invocation(Invoc0),
-    send_invocation(Invoc, RegistrationId, #{}, Arguments, ArgumentsKw),
+    Disclose = maps:get(disclose_me, Options, false),
+    Details = maybe_set_caller(Disclose, CallerSessId),
+    send_invocation(Invoc, RegistrationId, Details, Arguments, ArgumentsKw),
     ok.
+
+maybe_set_caller(true, SessionId) ->
+    #{caller => SessionId};
+maybe_set_caller(_, _) ->
+    #{}.
+
+
 
 invocation_error({error, invocation, InvocId, ErrorUri, Arguments, ArgumentsKw},
                  CalleeSession) ->

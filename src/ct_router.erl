@@ -42,7 +42,7 @@ agent_roles() ->
            progressive_call_results => false,
            call_timeout => false,
            call_canceling => false,
-           caller_identification => false,
+           caller_identification => true,
            call_trustlevel => false,
            registration_meta_api => false,
            pattern_based_registration => false,
