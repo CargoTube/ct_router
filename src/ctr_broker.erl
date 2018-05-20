@@ -74,8 +74,8 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
        sub_id = SubId,
        subs = AllSubs
       } = Publication,
-    Subs = ctrb_blackwhite:filter_subscriber(AllSubs, Options),
-    send_event(Msg, SubId, PubId, Subs, Session),
+    Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, Session),
+    send_event(Msg, SubId, PubId, Subs),
 
     WantAcknowledge = maps:get(acknowledge, Options, false),
     maybe_send_published(WantAcknowledge, ReqId, PubId, Session).
@@ -128,10 +128,7 @@ maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
     ok = ct_router:to_session(Session, Error),
     ok.
 
-send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs0,
-           Session) ->
-    SessionId = cta_session:get_id(Session),
-    Subs = lists:delete(SessionId, Subs0),
+send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs) ->
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
     Send =
         fun(SessId, _) ->

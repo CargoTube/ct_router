@@ -27,7 +27,7 @@ agent_roles() ->
        broker => #{
          features => #{
            subscriber_blackwhite_listing => true,
-           publisher_exclusion => false,
+           publisher_exclusion => true,
            publisher_identification => false,
            publication_trustlevels => false,
            subscription_meta_api => false,

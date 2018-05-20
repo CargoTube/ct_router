@@ -1,9 +1,12 @@
 -module(ctrb_blackwhite).
 
--export([filter_subscriber/2]).
+-export([filter_subscriber/3]).
 
 
-filter_subscriber(Subs, Options) ->
+filter_subscriber(Subs0, Options, Session) ->
+    SessionId = cta_session:get_id(Session),
+    Exclude = maps:get(exclude_me, Options, true),
+    Subs = maybe_exclude_publisher(Exclude, SessionId, Subs0),
     Exclude = maps:get(exclude, Options, []),
     ExcludeAuthId = maps:get(exclude_authid, Options, []),
     ExcludeAuthRole = maps:get(exclude_authrole, Options, []),
@@ -15,6 +18,11 @@ filter_subscriber(Subs, Options) ->
                   {eligible_authid, EligibleAuthId},
                   {eligible_authrole, EligibleAuthRole}],
     do_filter_subscribers(Subs, FilterList).
+
+maybe_exclude_publisher(true, Id, Subs) ->
+    lists:delete(Id, Subs);
+maybe_exclude_publisher(_, _, Subs) ->
+    Subs.
 
 do_filter_subscribers(Subs, []) ->
     Subs;
