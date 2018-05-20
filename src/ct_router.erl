@@ -114,8 +114,15 @@ to_peer(PeerAtGate, Message) ->
 
 
 get_agent_version() ->
-    {ok, Version} = application:get_key(vsn),
+    Version = safe_version(application:get_key(vsn)),
     ensure_binary(application:get_env(cargotube, version, Version)).
+
+safe_version(undefined) ->
+    <<"development">>;
+safe_version({ok, Version}) ->
+    Version.
+
+
 
 get_agent_name() ->
     ensure_binary(application:get_env(cargotube, name, "CargoTube.org")).
