@@ -40,7 +40,7 @@ unregister_all(Session) ->
     ok.
 
 
-do_register({register, _ReqId, Options, Procedure} = Msg, Session) ->
+do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
     NewId = ctr_utils:gen_global_id(),
@@ -67,7 +67,7 @@ handle_register_result({error, procedure_exists}, Msg, Session) ->
                                               procedure_already_exists)),
     ok.
 
-do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
+do_unregister({unregister, _ReqId, RegId} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
     Result = delete_registration(RegId, SessId),
     handle_unregister_result(Result, Msg, Session).
@@ -76,8 +76,9 @@ do_unregister({unregister, ReqId, RegId} = Msg, Session) ->
 
 do_call({call, _ReqId, _Options, Procedure, _Arguments, _ArgumentsKw} = Msg,
         Session) ->
-    Result = find_callee(Procedure, Session),
-    handle_call_callee(Result, Msg, Session).
+    Internal = ctr_callee:is_procedure(Procedure),
+    Result = find_registration(Internal, Procedure, Session),
+    handle_call_registration(Result, Msg, Session).
 
 
 
@@ -94,7 +95,10 @@ handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     HasRegistration = cta_session:has_registration(RegId, Session),
     maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
 
-handle_call_callee({ok, Registration}, Msg, Session) ->
+handle_call_registration({ok, system}, Msg, Session) ->
+    ctrd_callee:handle_call(Msg, Session),
+    ok;
+handle_call_registration({ok, Registration}, Msg, Session) ->
     #ctr_registration{
        id = RegistrationId,
        callee_sess_ids = CalleeIds
@@ -102,7 +106,7 @@ handle_call_callee({ok, Registration}, Msg, Session) ->
 
     ctrd_invocation:new(RegistrationId, CalleeIds, Msg, Session),
     ok;
-handle_call_callee({error, not_found}, Msg, Session) ->
+handle_call_registration({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     Error = ?ERROR(call, RequestId, #{}, no_such_procedure),
     ok = ct_router:to_session(Session, Error),
@@ -169,7 +173,9 @@ handle_store_result({atomic, {error, id_exists}}, Registration) ->
     store_registration(Registration).
 
 
-find_callee(Procedure, Session) ->
+find_registration(true, _Procedure, _Session) ->
+    {ok, system};
+find_registration(false, Procedure, Session) ->
     Realm = cta_session:get_realm(Session),
 
     MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
