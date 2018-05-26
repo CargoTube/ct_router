@@ -81,6 +81,7 @@ get_session(SessionId, PeerAtGate) ->
 close_session(Session) ->
     ctr_broker:unsubscribe_all(Session),
     ctr_dealer:unregister_all(Session),
+    ctr_broker:send_session_meta_event(leave, Session),
     cta_session:close(Session).
 
 
@@ -90,6 +91,7 @@ handle_auth_result({ok, Session}, _PeerAtGate) ->
       agent => ct_router:agent_identification(),
       roles => ct_router:agent_roles()
      },
+    ok = ctr_broker:send_session_meta_event(join, Session),
     to_session(Session, ?WELCOME(SessionId, Details));
 handle_auth_result({abort, Reason}, PeerAtGate) ->
     message_to_peer(PeerAtGate, ?ABORT(#{}, Reason)).

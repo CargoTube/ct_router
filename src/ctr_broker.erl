@@ -8,6 +8,8 @@
          handle_message/3,
          unsubscribe_all/1,
 
+         send_session_meta_event/2,
+
          init/0
         ]).
 
@@ -17,6 +19,19 @@ handle_message(unsubscribe, Message, Session) ->
     do_unsubscribe(Message, Session);
 handle_message(publish, Message, Session) ->
     do_publish(Message, Session).
+
+
+send_session_meta_event(join, Session) ->
+    Keys = [session, authid, authrole, authmethod,
+           authprovider, transport],
+    Info = maps:with(Keys, cta_session:to_map(Session)),
+    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_join">>, [Info]), Session),
+    ok;
+send_session_meta_event(leave, Session) ->
+    Id = cta_session:get_id(Session),
+    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_leave">>, [Id]), Session),
+    ok.
+
 
 
 unsubscribe_all(Session) ->
