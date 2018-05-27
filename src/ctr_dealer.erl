@@ -96,7 +96,7 @@ handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
 
 handle_call_registration({ok, system}, Msg, Session) ->
-    ctrd_callee:handle_call(Msg, Session),
+    ctr_callee:handle_call(Msg, Session),
     ok;
 handle_call_registration({ok, Registration}, Msg, Session) ->
     #ctr_registration{

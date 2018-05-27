@@ -34,7 +34,7 @@ agent_roles() ->
            pattern_based_subscription => false,
            sharded_subscription => false,
            event_history => false,
-           session_meta_apit => false
+           session_meta_api => true
           }
         },
        dealer => #{
@@ -49,7 +49,7 @@ agent_roles() ->
            shared_registration => false,
            sharded_registration => false,
            testament_meta_api => false,
-           session_meta_apit => false
+           session_meta_api => true
            }
         }
      }.
