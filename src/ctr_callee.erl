@@ -19,16 +19,14 @@ is_procedure(Procedure) ->
 
 
 handle_call({call, ReqId, _Options, Procedure, Args, ArgsKw}, Session) ->
-    Realm = cta_session:get_realm(Session),
-    {_, Fun} = lists:keyfind(Procedure, 1, ?PROCEDURES),
-    Result = Fun(Args, ArgsKw, Realm),
-    handle_call_fun_result(Result, ReqId).
-
-handle_call_fun_result({error, Error}, ReqId) ->
-    ?ERROR(call, ReqId, #{}, Error);
-handle_call_fun_result({ResArgs, ResArgsKw}, ReqId) ->
-    ?RESULT(ReqId, #{}, ResArgs, ResArgsKw).
-
+    try
+        Realm = cta_session:get_realm(Session),
+        {_, Fun} = lists:keyfind(Procedure, 1, ?PROCEDURES),
+        {ResArgs, ResArgsKw} = Fun(Args, ArgsKw, Realm),
+        ?RESULT(ReqId, #{}, ResArgs, ResArgsKw)
+    catch Error ->
+            ?ERROR(call, ReqId, #{}, Error)
+    end.
 
 
 session_count(Args, _Kw, Realm) ->
@@ -50,7 +48,7 @@ handle_session_result({ok, Session}, Realm) ->
     SameRealm = (cta_session:get_realm(Session) == Realm),
     maybe_return_session_info(SameRealm, Session);
 handle_session_result(_Error, _Realm) ->
-    {error, no_such_session}.
+    throw(no_such_session).
 
 
 maybe_return_session_info(true, Session) ->
@@ -58,16 +56,18 @@ maybe_return_session_info(true, Session) ->
     Keys = [session, authid, authrole, authmethod, authprovider, transport],
     {[maps:with(Keys, SessMap)], undefined};
 maybe_return_session_info(false, _Session) ->
-    {error, no_such_session}.
+    throw(no_such_session).
 
 
 
 sessions_get(undefined, Realm) ->
     sessions_get([[]], Realm);
-sessions_get([AuthRoles], Realm) ->
+sessions_get([AuthRoles], Realm) when is_list(AuthRoles) ->
     Filter = fun(Session) ->
                      Role = cta_session:get_authrole(Session),
                      lists:member(Role, AuthRoles)
              end,
     {ok, List} = cta_session:lookup_by_realm(Realm),
-    lists:filter(Filter, List).
+    lists:filter(Filter, List);
+sessions_get(_Args, _Realm) ->
+    throw(invalid_argument).
