@@ -10,7 +10,7 @@ clean:
 	$(REBAR) clean
 
 eunit:
-	$(REBAR) eunit
+	$(REBAR) eunit -v
 	$(REBAR) cover -v
 
 rel:
@@ -20,7 +20,7 @@ run: rel
 	./_build/default/rel/ct_router/bin/ct_router
 
 ct:
-	$(REBAR) ct
+	$(REBAR) ct -v
 	$(REBAR) cover -v
 
 tests: elvis eunit ct

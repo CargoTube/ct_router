@@ -65,8 +65,16 @@ handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     handle_auth_result(AuthResult, PeerAtGate).
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
+    {Time, Result} = timer:tc(fun do_handle_established/4, [Type, Message,
+                                                            SessionId,
+                                                            PeerAtGate]),
+    lager:info("message handling took ~p ms",[Time/1000]),
+    Result.
+
+do_handle_established(Type, Message, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
     ctr_routing:handle_established(Type, Message, Session).
+
 
 handle_session_closed(SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
