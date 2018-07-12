@@ -31,3 +31,7 @@ elvis:
 
 compile:
 	$(REBAR) compile
+
+
+loc:
+	cloc --by-file src/*.erl
