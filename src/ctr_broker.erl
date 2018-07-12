@@ -176,6 +176,16 @@ store_subscription(Sub0) ->
     GiveObject = ['$_'],
     MatchSpec = [{MatchHead, Guard, GiveObject}],
 
+    WriteIfNew =
+        fun(Id, Sub) ->
+                case mnesia:wread({ctr_subscription, Id}) of
+                    [] ->
+                        ok = mnesia:write(Sub),
+                        {created, Sub};
+                    _ ->
+                        {error, id_exists}
+                end
+        end,
 
     Store =
         fun() ->
@@ -189,13 +199,7 @@ store_subscription(Sub0) ->
                         ok = mnesia:write(NewSubscription),
                         {added, NewSubscription};
                     [] ->
-                        case mnesia:wread({ctr_subscription, NewId}) of
-                            [] ->
-                                ok = mnesia:write(NewSub),
-                                {created, NewSub};
-                            _ ->
-                                {error, id_exists}
-                        end
+                        WriteIfNew(NewId, NewSub)
                 end
         end,
     Result = mnesia:transaction(Store),
@@ -226,24 +230,23 @@ store_publication(Pub0) ->
     GiveObject = ['$_'],
     MatSpec = [{MatchHead, Guard, GiveObject}],
 
+
+    UpdateOrWriteNew =
+        fun([#ctr_subscription{id = SubId, subscribers = Subs}]) ->
+                UpdatedPub = NewPub#ctr_publication{sub_id=SubId, subs = Subs},
+                ok = mnesia:write(UpdatedPub),
+                {ok, UpdatedPub};
+           ([]) ->
+                ok = mnesia:write(NewPub),
+                {ok, NewPub}
+        end,
+
     LookupAndStore =
         fun() ->
                 case mnesia:wread({ctr_publication, NewPubId}) of
                     [] ->
-                        case mnesia:select(ctr_subscription, MatSpec, write) of
-                            [#ctr_subscription{id = SubId,
-                                               subscribers = Subs}] ->
-                                UpdatedPub =
-                                    NewPub#ctr_publication{sub_id=SubId,
-                                                            subs = Subs
-                                                           },
-                                ok = mnesia:write(UpdatedPub),
-                                {ok, UpdatedPub};
-
-                            [] ->
-                                ok = mnesia:write(NewPub),
-                                {ok, NewPub}
-                        end;
+                        Found = mnesia:select(ctr_subscription, MatSpec, write),
+                        UpdateOrWriteNew(Found);
                     _ ->
                         {error, pub_id_exists}
                 end
@@ -259,23 +262,25 @@ handle_publication_store_result({atomic, {error, pub_id_exists}}, Pub0) ->
 
 
 delete_subscription(SubId, SessionId) ->
+    DeleteOrUpdateSubscription =
+        fun([], Subscription) ->
+                mnesia:delete({ctr_subscription, SubId}),
+                {deleted, Subscription};
+           (_, Subscription) ->
+                ok = mnesia:write(Subscription),
+                {removed, Subscription}
+        end,
+
     Delete =
         fun() ->
                 case mnesia:wread({ctr_subscription, SubId}) of
                     [#ctr_subscription{subscribers = Subs } = Subscription] ->
-                        NewSubs = lists:delete(SessionId, Subs),
-                        NewSubscription = Subscription#ctr_subscription{
-                                            subscribers = NewSubs
+                        NewSubscriber = lists:delete(SessionId, Subs),
+                        UpdatedSubscription = Subscription#ctr_subscription{
+                                            subscribers = NewSubscriber
                                            },
-                        case NewSubs of
-                            [] ->
-                                mnesia:delete({ctr_subscription, SubId}),
-                                {deleted, NewSubscription};
-
-                            _ ->
-                                ok = mnesia:write(NewSubscription),
-                                {removed, NewSubscription}
-                        end;
+                        DeleteOrUpdateSubscription(NewSubscriber,
+                                                   UpdatedSubscription);
                     [] ->
                         {error, not_found}
                 end

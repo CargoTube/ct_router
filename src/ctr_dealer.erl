@@ -147,19 +147,21 @@ store_registration(Registration) ->
     Guard = [],
     GiveObject = ['$_'],
     MatchSpec = [{MatchHead, Guard, GiveObject}],
+
+    CreateIfNew =
+        fun([]) ->
+                ok = mnesia:write(Registration),
+                {created, Registration};
+           (_) ->
+
+                {error, id_exists}
+        end,
     Register =
         fun() ->
                 case mnesia:select(ctr_registration, MatchSpec, write) of
                     [] ->
-                        case mnesia:wread({ctr_registration, NewId}) of
-                            [] ->
-                                ok = mnesia:write(Registration),
-                                {created, Registration};
-                            _ ->
-                                {error, id_exists}
-                        end;
-                    _ ->
-                        {error, procedure_exists}
+                        Found = mnesia:wread({ctr_registration, NewId}),
+                        CreateIfNew(Found)
                 end
         end,
     Result = mnesia:transaction(Register),
@@ -204,6 +206,15 @@ handle_find_result({atomic, {error, not_found}}) ->
 
 
 delete_registration(RegId, SessId) ->
+
+    DeleteIfEmpty =
+        fun([], RegistrationId, Registration) ->
+                mnesia:delete({ctr_registration, RegistrationId}),
+                {deleted, Registration};
+           (_, _RegistrationId, Registration) ->
+                {removed, Registration}
+        end,
+
     Unregister =
         fun() ->
                 case mnesia:wread({ctr_registration, RegId}) of
@@ -211,15 +222,7 @@ delete_registration(RegId, SessId) ->
                         NewCallees = lists:delete(SessId, Callees),
                         NewReg = Reg#ctr_registration{
                                    callee_sess_ids = NewCallees},
-                        case NewCallees of
-                            [] ->
-                                mnesia:delete({ctr_registration, RegId}),
-                                {deleted, NewReg};
-
-                            _ ->
-                                ok = mnesia:write(NewReg),
-                                {removed, NewReg}
-                        end;
+                        DeleteIfEmpty(NewCallees, RegId, NewReg);
                     [] ->
                         {error, not_found}
                 end

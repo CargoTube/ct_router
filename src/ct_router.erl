@@ -68,7 +68,7 @@ handle_established(Type, Message, SessionId, PeerAtGate) ->
     {Time, Result} = timer:tc(fun do_handle_established/4, [Type, Message,
                                                             SessionId,
                                                             PeerAtGate]),
-    lager:info("message handling took ~p ms",[Time/1000]),
+    lager:info("message handling took ~p ms", [Time/1000]),
     Result.
 
 do_handle_established(Type, Message, SessionId, PeerAtGate) ->
