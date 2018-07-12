@@ -57,7 +57,7 @@ maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
        caller_sess_id = CallerSessId,
        caller_req_id = CallerReqId
       } = Invoc,
-    ok = delete_invocation(Invoc),
+    ok = delete_invocation_if_configured(Invoc),
     ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
     send_message([CallerSessId], ResultMsg),
     ok;
@@ -69,7 +69,7 @@ maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
        caller_sess_id = CallerSessId,
        caller_req_id = CallerReqId
       } = Invoc,
-    ok = delete_invocation(Invoc),
+    ok = delete_invocation_if_configured(Invoc),
     ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
     send_message([CallerSessId], ResultMsg),
     ok;
@@ -139,13 +139,19 @@ handle_invocation_find_result(_) ->
     {error, not_found}.
 
 
-delete_invocation(#ctrd_invocation{id=Id}) ->
+delete_invocation_if_configured(Invocation) ->
+    DoDelete = application:get_env(ct_router, delete_invocation, false),
+    maybe_delete_invocation(DoDelete, Invocation).
+
+maybe_delete_invocation(true, #ctrd_invocation{id=Id}) ->
     DeleteInvocation =
         fun() ->
                 mnesia:delete({ctrd_invocation, Id})
         end,
     Result = mnesia:transaction(DeleteInvocation),
-    handle_invocation_delete_result(Result).
+    handle_invocation_delete_result(Result);
+maybe_delete_invocation(false, _) ->
+    ok.
 
 
 handle_invocation_delete_result({atomic, ok}) ->
@@ -157,7 +163,7 @@ handle_invocation_delete_result(Error) ->
 create_table() ->
     mnesia:delete_table(ctrd_invocation),
     InvDef = [{attributes, record_info(fields, ctrd_invocation)},
-              {ram_copies, [node()]},
+              {disc_copies, [node()]},
               {index, [realm]}
              ],
     {atomic, ok} = mnesia:create_table(ctrd_invocation, InvDef),
