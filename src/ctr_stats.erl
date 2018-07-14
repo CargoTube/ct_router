@@ -71,11 +71,19 @@ update_state(#state{entries = Entries}) ->
     StillOkayTime = Now - MaxKeepSec,
 
     FilterOld =
-        fun({_Duration, _Type, Time}) ->
-               Time >= StillOkayTime
+        fun({_Duration, _Type, Time} = Entry, {List, Oldest}) ->
+                case {Time >= StillOkayTime, Time < Oldest} of
+                    {true, true}  ->
+                        {[ Entry | List], Time};
+                    {true, false} ->
+                        {[ Entry | List], Oldest};
+                    _ ->
+                        {List, Oldest}
+                end
         end,
-    ActiveEntries = lists:filter(FilterOld, Entries),
 
+
+    {ActiveEntries, Oldest}  = lists:foldl(FilterOld, {[], Now}, Entries),
     Sort =
         fun({DurationA, _, _}, {DurationB, _, _}) ->
                 DurationA =< DurationB
@@ -86,14 +94,18 @@ update_state(#state{entries = Entries}) ->
     Percentile99 = percentile( 0.99,  Sorted, Length),
     {Fastest, _, _} = lists:nth(1, Sorted),
     {Slowest, _, _} = lists:nth(Length, Sorted),
+    AvgMsgSec = Length / (Now - Oldest),
 
-    lager:info("message stats: [ ~p / ~p / * ~p * / ~p ] ms",
-               [Fastest, Percentile50, Percentile99, Slowest]),
+
+    lager:info("stats: ~p msg/sec [ ~p / ~p / * ~p * / ~p ] ms (~p msgs)",
+               [AvgMsgSec, Fastest, Percentile50, Percentile99, Slowest,
+                Length]),
 
     #state{entries = Sorted,
            percentile50 = Percentile50,
            percentile99 = Percentile99,
-           fastest = Fastest, slowest = Slowest
+           fastest = Fastest, slowest = Slowest,
+           avg_msg_sec = AvgMsgSec
           }.
 
 
