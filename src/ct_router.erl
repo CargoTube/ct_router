@@ -56,15 +56,15 @@ agent_roles() ->
 
 
 handle_hello(Hello, PeerAtGate) ->
-    {Time, Result} = timer:tc(fun do_handle_hello/2, [Hello, PeerAtGate]),
-    ctr_stats:add(hello, Time),
+    {_Time, Result} = timer:tc(fun do_handle_hello/2, [Hello, PeerAtGate]),
+    %% ctr_stats:add(hello, Time),
     Result.
 
 handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
-    {Time, Result} = timer:tc(fun do_handle_authenticate/3, [Authenticate,
+    {_Time, Result} = timer:tc(fun do_handle_authenticate/3, [Authenticate,
                                                             SessionId,
                                                             PeerAtGate]),
-    ctr_stats:add(authenticate, Time),
+    %% ctr_stats:add(authenticate, Time),
     Result.
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
