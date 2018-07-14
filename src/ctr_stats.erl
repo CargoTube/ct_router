@@ -19,7 +19,9 @@
           oldest = undefined,
           slowest = undefined,
           fastest = undefined,
+          percentile25 = 0,
           percentile50 = 0,
+          percentile75 = 0,
           percentile99 = 0,
           avg_msg_sec = 0,
           median = undefined
@@ -90,19 +92,23 @@ update_state(#state{entries = Entries}) ->
          end,
     Sorted = lists:sort(Sort, ActiveEntries),
     Length = length(Sorted),
+    Percentile25 = percentile( 0.25,  Sorted, Length),
     Percentile50 = percentile( 0.5,  Sorted, Length),
+    Percentile75 = percentile( 0.75,  Sorted, Length),
     Percentile99 = percentile( 0.99,  Sorted, Length),
     {Fastest, _, _} = lists:nth(1, Sorted),
     {Slowest, _, _} = lists:nth(Length, Sorted),
     AvgMsgSec = Length / (Now - Oldest),
 
 
-    lager:info("stats: ~p msg/sec [ ~p / ~p / * ~p * / ~p ] ms (~p msgs)",
-               [AvgMsgSec, Fastest, Percentile50, Percentile99, Slowest,
-                Length]),
+    lager:info("stats: ~p msg/sec [ ~p / ~p / ~p / ~p / * ~p * / ~p ] ms #~p",
+               [AvgMsgSec, Fastest, Percentile25, Percentile50, Percentile75,
+                Percentile99, Slowest, Length]),
 
     #state{entries = Sorted,
+           percentile25 = Percentile25,
            percentile50 = Percentile50,
+           percentile75 = Percentile75,
            percentile99 = Percentile99,
            fastest = Fastest, slowest = Slowest,
            avg_msg_sec = AvgMsgSec
