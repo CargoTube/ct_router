@@ -56,20 +56,32 @@ agent_roles() ->
 
 
 handle_hello(Hello, PeerAtGate) ->
-    AuthResult = ct_auth:handle_hello(Hello, PeerAtGate),
-    handle_auth_result(AuthResult, PeerAtGate).
+    {Time, Result} = timer:tc(fun do_handle_hello/2, [Hello, PeerAtGate]),
+    ctr_stats:add(hello, Time),
+    Result.
 
 handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
-    Session = get_session(SessionId, PeerAtGate),
-    AuthResult = ct_auth:handle_authenticate(Authenticate, Session, PeerAtGate),
-    handle_auth_result(AuthResult, PeerAtGate).
+    {Time, Result} = timer:tc(fun do_handle_authenticate/3, [Authenticate,
+                                                            SessionId,
+                                                            PeerAtGate]),
+    ctr_stats:add(authenticate, Time),
+    Result.
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
     {Time, Result} = timer:tc(fun do_handle_established/4, [Type, Message,
                                                             SessionId,
                                                             PeerAtGate]),
-    lager:info("message handling took ~p ms", [Time/1000]),
+    ctr_stats:add(Type, Time),
     Result.
+
+do_handle_hello(Hello, PeerAtGate) ->
+    AuthResult = ct_auth:handle_hello(Hello, PeerAtGate),
+    handle_auth_result(AuthResult, PeerAtGate).
+
+do_handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
+    Session = get_session(SessionId, PeerAtGate),
+    AuthResult = ct_auth:handle_authenticate(Authenticate, Session, PeerAtGate),
+    handle_auth_result(AuthResult, PeerAtGate).
 
 do_handle_established(Type, Message, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
