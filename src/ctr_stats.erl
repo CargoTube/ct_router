@@ -88,7 +88,7 @@ update_state(#state{entries = Entries}) ->
     {Slowest, _, _} = lists:nth(Length, Sorted),
 
     lager:info("message stats: [ ~p / ~p / * ~p * / ~p ] ms",
-               [Slowest, Percentile50, Percentile99, Fastest]),
+               [Fastest, Percentile50, Percentile99, Slowest]),
 
     #state{entries = Sorted,
            percentile50 = Percentile50,
