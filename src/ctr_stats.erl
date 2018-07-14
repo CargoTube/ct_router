@@ -111,10 +111,12 @@ percentile_pos(Percentil, Length, _, Upper) when Percentil >= Upper ->
 percentile_pos(Percentil, Length, _ ,_) ->
     Percentil * Length.
 
-calc_percentile(Pos, 0.0, Entries) ->
+calc_percentile(Pos, 0.0, Entries) when is_integer(Pos) ->
     {Result, _, _} = lists:nth(Pos, Entries),
     Result;
-calc_percentile(Pos, Partial, Entries) ->
+calc_percentile(Pos, Partial, Entries) when is_integer(Pos) ->
     {A, _, _} = lists:nth(Pos, Entries),
     {B, _, _} = lists:nth(Pos + 1, Entries),
-    A + (B - A) * Partial.
+    A + (B - A) * Partial;
+calc_percentile(Pos, Partial, Entries) when is_float(Pos) ->
+    calc_percentile(round(Pos), Partial, Entries).
