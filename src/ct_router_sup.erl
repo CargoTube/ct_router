@@ -11,6 +11,9 @@ start_link() ->
 
 init(noparams) ->
     Procs = [
+             #{ id => stats,
+                start => {ctr_stats, start_link, []}
+              }
             ],
     Flags = #{},
     {ok, {Flags, Procs}}.

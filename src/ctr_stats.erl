@@ -63,7 +63,7 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 update_state(#state{entries = []} = State) ->
-    lager:info("message stats: nothing sent."),
+    lager:info("stats: nothing sent."),
     State;
 update_state(#state{entries = Entries}) ->
     Now = erlang:system_time(second),
