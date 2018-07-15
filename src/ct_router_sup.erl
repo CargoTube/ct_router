@@ -10,10 +10,6 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, noparams).
 
 init(noparams) ->
-    Procs = [
-             #{ id => stats,
-                start => {ctr_stats, start_link, []}
-              }
-            ],
+    Procs = [],
     Flags = #{},
     {ok, {Flags, Procs}}.
