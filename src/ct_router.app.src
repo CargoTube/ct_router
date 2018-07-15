@@ -10,6 +10,7 @@
     lager,
     mnesia,
     ct_auth,
+    ct_stats,
     ct_msg
    ]},
   {env,[]},
