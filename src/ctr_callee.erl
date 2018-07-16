@@ -26,7 +26,8 @@
          %% { <<"wamp.subscription.get">>, fun subs_get/3 },
          %% { <<"wamp.subscription.list_subscribers">>, fun subs_sub_list/3 },
          %% { <<"wamp.subscription.count_subscribers">>, fun subs_sub_count/3 },
-         { no_uri, no_fun }
+
+         undefined
         ]).
 
 is_procedure(Procedure) ->
@@ -76,11 +77,12 @@ maybe_return_session_info(false, _Session) ->
 
 
 sessions_get(undefined, Realm) ->
-    sessions_get([[]], Realm);
-sessions_get([AuthRoles], Realm) when is_list(AuthRoles) ->
+    sessions_get([no_filter], Realm);
+sessions_get([AuthRoles], Realm) when is_list(AuthRoles);
+                                      AuthRoles == no_filter ->
     Filter = fun(Session) ->
                      Role = cta_session:get_authrole(Session),
-                     lists:member(Role, AuthRoles)
+                     AuthRoles == no_filter orelse lists:member(Role, AuthRoles)
              end,
     {ok, List} = cta_session:lookup_by_realm(Realm),
     lists:filter(Filter, List);
