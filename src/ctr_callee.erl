@@ -8,10 +8,26 @@
          handle_call/2
         ]).
 
--define(PROCEDURES, [ { <<"wamp.session.count">>, fun session_count/3 },
-                      { <<"wamp.session.list">>, fun session_list/3 },
-                      { <<"wamp.session.get">>, fun session_get/3 }
-                    ]).
+-define(PROCEDURES,
+        [{ <<"wamp.session.count">>, fun session_count/3 },
+         { <<"wamp.session.list">>, fun session_list/3 },
+         { <<"wamp.session.get">>, fun session_get/3 },
+
+         %% { <<"wamp.registration.list">>, fun reg_list/3 },
+         %% { <<"wamp.registration.lookup">>, fun reg_lookup/3 },
+         %% { <<"wamp.registration.match">>, fun reg_match/3 },
+         %% { <<"wamp.registration.get">>, fun reg_get/3 },
+         %% { <<"wamp.registration.list_callees">>, fun reg_callees/3 },
+         %% { <<"wamp.registration.count_callees">>, fun reg_callee_count/3 },
+
+         %% { <<"wamp.subscription.list">>, fun subs_list/3 },
+         %% { <<"wamp.subscription.lookup">>, fun subs_lookup/3 },
+         %% { <<"wamp.subscription.match">>, fun subs_match/3 },
+         %% { <<"wamp.subscription.get">>, fun subs_get/3 },
+         %% { <<"wamp.subscription.list_subscribers">>, fun subs_sub_list/3 },
+         %% { <<"wamp.subscription.count_subscribers">>, fun subs_sub_count/3 },
+         { no_uri, no_fun }
+        ]).
 
 is_procedure(Procedure) ->
     Result = lists:keyfind(Procedure, 1, ?PROCEDURES),
@@ -57,7 +73,6 @@ maybe_return_session_info(true, Session) ->
     {[maps:with(Keys, SessMap)], undefined};
 maybe_return_session_info(false, _Session) ->
     throw(no_such_session).
-
 
 
 sessions_get(undefined, Realm) ->
