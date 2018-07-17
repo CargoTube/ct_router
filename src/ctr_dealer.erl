@@ -67,9 +67,9 @@ maybe_convert_to_map({ok, #ctr_registration{id = Id, created = Created,
                                             procedure = Uri, match = Match,
                                             invoke = Invoke,
                                             callee_sess_ids = Callees }}) ->
-    %TODO: convert created
-    {ok, #{id => Id, created => Created, uri => Uri, match => Match,
-           invoke => Invoke, callees => Callees}};
+
+    {ok, #{id => Id, created => iso8601:format(Created), uri => Uri,
+           match => Match, invoke => Invoke, callees => Callees}};
 maybe_convert_to_map(Other) ->
     Other.
 

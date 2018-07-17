@@ -9,6 +9,7 @@
     stdlib,
     lager,
     mnesia,
+    iso8601,
     ct_auth,
     ct_stats,
     ct_msg
