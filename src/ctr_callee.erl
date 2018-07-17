@@ -13,19 +13,19 @@
          { <<"wamp.session.list">>, fun session_list/3 },
          { <<"wamp.session.get">>, fun session_get/3 },
 
-         %% { <<"wamp.registration.list">>, fun reg_list/3 },
-         %% { <<"wamp.registration.lookup">>, fun reg_lookup/3 },
-         %% { <<"wamp.registration.match">>, fun reg_match/3 },
-         %% { <<"wamp.registration.get">>, fun reg_get/3 },
-         %% { <<"wamp.registration.list_callees">>, fun reg_callees/3 },
-         %% { <<"wamp.registration.count_callees">>, fun reg_callee_count/3 },
+         { <<"wamp.registration.list">>, fun reg_list/3 },
+         { <<"wamp.registration.lookup">>, fun reg_lookup/3 },
+         { <<"wamp.registration.match">>, fun reg_match/3 },
+         { <<"wamp.registration.get">>, fun reg_get/3 },
+         { <<"wamp.registration.list_callees">>, fun reg_callees/3 },
+         { <<"wamp.registration.count_callees">>, fun reg_callee_count/3 },
 
-         %% { <<"wamp.subscription.list">>, fun subs_list/3 },
-         %% { <<"wamp.subscription.lookup">>, fun subs_lookup/3 },
-         %% { <<"wamp.subscription.match">>, fun subs_match/3 },
-         %% { <<"wamp.subscription.get">>, fun subs_get/3 },
-         %% { <<"wamp.subscription.list_subscribers">>, fun subs_sub_list/3 },
-         %% { <<"wamp.subscription.count_subscribers">>, fun subs_sub_count/3 },
+         { <<"wamp.subscription.list">>, fun subs_list/3 },
+         { <<"wamp.subscription.lookup">>, fun subs_lookup/3 },
+         { <<"wamp.subscription.match">>, fun subs_match/3 },
+         { <<"wamp.subscription.get">>, fun subs_get/3 },
+         { <<"wamp.subscription.list_subscribers">>, fun subs_sub_list/3 },
+         { <<"wamp.subscription.count_subscribers">>, fun subs_sub_count/3 },
 
          undefined
         ]).
@@ -46,45 +46,51 @@ handle_call({call, ReqId, _Options, Procedure, Args, ArgsKw}, Session) ->
     end.
 
 
-session_count(Args, _Kw, Realm) ->
-    {[length(sessions_get(Args, Realm))], undefined}.
+session_count(Args, Kw, Realm) ->
+    ctr_callee_session:count(Args, Kw, Realm).
 
-session_list(Args, _Kw, Realm) ->
-    ToId = fun(Session, Ids) ->
-                   [ cta_session:get_id(Session) | Ids ]
-           end,
-    Ids = lists:foldl(ToId, [], sessions_get(Args, Realm)),
-    {[Ids], undefined}.
+session_list(Args, Kw, Realm) ->
+    ctr_callee_session:list(Args, Kw, Realm).
 
-session_get([Id], _Kw, Realm) ->
-    Result = cta_session:lookup(Id),
-    handle_session_result(Result, Realm).
+session_get(Args, Kw, Realm) ->
+    ctr_callee_session:get(Args, Kw, Realm).
 
 
-handle_session_result({ok, Session}, Realm) ->
-    SameRealm = (cta_session:get_realm(Session) == Realm),
-    maybe_return_session_info(SameRealm, Session);
-handle_session_result(_Error, _Realm) ->
-    throw(no_such_session).
+
+reg_list(Args, Kw, Realm) ->
+    ctr_callee_registration:list(Args, Kw, Realm).
+
+reg_lookup(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+reg_match(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+reg_get(Args, Kw, Realm) ->
+    ctr_callee_registration:get(Args, Kw, Realm).
+
+reg_callees(Args, Kw, Realm) ->
+    ctr_callee_registration:callees(Args, Kw, Realm).
+
+reg_callee_count(Args, Kw, Realm) ->
+    ctr_callee_registration:callee_count(Args, Kw, Realm).
 
 
-maybe_return_session_info(true, Session) ->
-    SessMap = cta_session:to_map(Session),
-    Keys = [session, authid, authrole, authmethod, authprovider, transport],
-    {[maps:with(Keys, SessMap)], undefined};
-maybe_return_session_info(false, _Session) ->
-    throw(no_such_session).
 
+subs_list(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
 
-sessions_get(undefined, Realm) ->
-    sessions_get([no_filter], Realm);
-sessions_get([AuthRoles], Realm) when is_list(AuthRoles);
-                                      AuthRoles == no_filter ->
-    Filter = fun(Session) ->
-                     Role = cta_session:get_authrole(Session),
-                     AuthRoles == no_filter orelse lists:member(Role, AuthRoles)
-             end,
-    {ok, List} = cta_session:lookup_by_realm(Realm),
-    lists:filter(Filter, List);
-sessions_get(_Args, _Realm) ->
-    throw(invalid_argument).
+subs_lookup(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+subs_match(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+subs_get(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+subs_sub_list(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).
+
+subs_sub_count(_Args, _Kw, _Realm) ->
+    throw(no_such_procedure).

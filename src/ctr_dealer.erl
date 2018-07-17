@@ -7,6 +7,8 @@
 -export([
          handle_message/3,
          unregister_all/1,
+         get_registration_lists/1,
+         get_registration/2,
 
          init/0
         ]).
@@ -38,6 +40,40 @@ unregister_all(Session) ->
              end,
     lists:foldl(Delete, ok, Regs),
     ok.
+
+
+get_registration_lists(Realm) ->
+    {ok, Registrations} = get_registrations_of_realm(Realm),
+
+    Separator = fun(#ctr_registration{ id = Id, match = exact },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { [ Id | ExactList ], PrefixList, WildcardList };
+                   (#ctr_registration{ id = Id, match = prefix },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, [ Id | PrefixList], WildcardList };
+                   (#ctr_registration{ id = Id, match = wildcard },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, PrefixList, [ Id | WildcardList ] }
+                end,
+    {E, P, W} = lists:foldl(Separator, {[], [], []}, Registrations),
+    {ok, #{exact => E, prefix => P, wildcard => W}}.
+
+
+get_registration(Id, Realm) ->
+    Result = lookup_regisration(Id, Realm),
+    maybe_convert_to_map(Result).
+
+maybe_convert_to_map({ok, #ctr_registration{id = Id, created = Created,
+                                            procedure = Uri, match = Match,
+                                            invoke = Invoke,
+                                            callee_sess_ids = Callees }}) ->
+    %TODO: convert created
+    {ok, #{id => Id, created => Created, uri => Uri, match => Match,
+           invoke => Invoke, callees => Callees}};
+maybe_convert_to_map(Other) ->
+    Other.
+
+
 
 
 do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
@@ -188,7 +224,7 @@ find_registration(false, Procedure, Session) ->
 
     FindCallee =
         fun() ->
-                case mnesia:select(ctr_registration, MatchSpec, write) of
+                case mnesia:select(ctr_registration, MatchSpec, read) of
                     [Registration] ->
                         {ok, Registration};
                     _ ->
@@ -203,6 +239,49 @@ handle_find_result({atomic, {ok, Registration}}) ->
 handle_find_result({atomic, {error, not_found}}) ->
     {error, not_found}.
 
+get_registrations_of_realm(Realm) ->
+    MatchHead = #ctr_registration{realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+
+    GetRegistrations =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, read) of
+                    ListOfRegs when is_list(ListOfRegs) ->
+                        {ok, ListOfRegs};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(GetRegistrations),
+    handle_registration_result(Result).
+
+handle_registration_result({atomic, {ok, ListOfRegs}}) ->
+    {ok, ListOfRegs};
+handle_registration_result(Other) ->
+    lager:error("registration lookup error: ~p", Other),
+    {ok, []}.
+
+
+
+lookup_regisration(Id, Realm) ->
+    MatchHead = #ctr_registration{realm=Realm, id=Id, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+
+    GetRegistrations =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, read) of
+                    [Registration] ->
+                        {ok, Registration};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(GetRegistrations),
+    handle_find_result(Result).
 
 
 
