@@ -70,10 +70,11 @@ get_map(Id, Realm) ->
     maybe_convert_to_map(Result).
 
 maybe_convert_to_map({ok, #ctr_subscription{id = Id, created = Created,
-                                            uri = Uri, match = Match}}) ->
+                                            uri = Uri, match = Match,
+                                            subscribers = Subs }}) ->
 
     {ok, #{id => Id, created => iso8601:format(Created), match => Match,
-           uri => Uri}};
+           uri => Uri, subs => Subs}};
 maybe_convert_to_map({error, _} = Error) ->
     Error.
 

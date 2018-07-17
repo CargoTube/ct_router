@@ -16,12 +16,20 @@ get([Id], _Kw, Realm) ->
     handle_get_result(Result).
 
 handle_get_result({ok, Map}) ->
-    {[Map], undefined};
+    Keys = [id, match, created, uri],
+    {[maps:with(Keys, Map)], undefined};
 handle_get_result(_) ->
     throw(no_such_registration).
 
-subscriber(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subscriber([Id], _Kw, Realm) ->
+    Result = ctr_broker:get_map(Id, Realm),
+    {[to_subscriber_list(Result)], undefined}.
 
-subscriber_count(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subscriber_count([Id], _Kw, Realm) ->
+    Result = ctr_broker:get_map(Id, Realm),
+    {[length(to_subscriber_list(Result))], undefined}.
+
+to_subscriber_list({ok, #{subs := Subs}}) ->
+    Subs;
+to_subscriber_list(_) ->
+    throw(no_such_registration).
