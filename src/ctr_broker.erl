@@ -10,6 +10,9 @@
 
          send_session_meta_event/2,
 
+         get_list_map/1,
+         get_map/2,
+
          init/0
         ]).
 
@@ -44,6 +47,37 @@ unsubscribe_all(Session) ->
              end,
     lists:foldl(Delete, ok, Subs),
     ok.
+
+
+get_list_map(Realm) ->
+    {ok, Subscriptions} = get_subscription_list(Realm),
+
+    Separator = fun(#ctr_subscription{ id = Id, match = exact },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { [ Id | ExactList ], PrefixList, WildcardList };
+                   (#ctr_subscription{ id = Id, match = prefix },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, [ Id | PrefixList], WildcardList };
+                   (#ctr_subscription{ id = Id, match = wildcard },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, PrefixList, [ Id | WildcardList ] }
+                end,
+    {E, P, W} = lists:foldl(Separator, {[], [], []}, Subscriptions),
+    {ok, #{exact => E, prefix => P, wildcard => W}}.
+
+get_map(Id, Realm) ->
+    Result = lookup_subscription(Id, Realm),
+    maybe_convert_to_map(Result).
+
+maybe_convert_to_map({ok, #ctr_subscription{id = Id, created = Created,
+                                            uri = Uri, match = Match}}) ->
+
+    {ok, #{id => Id, created => iso8601:format(Created), match => Match,
+           uri => Uri}};
+maybe_convert_to_map({error, _} = Error) ->
+    Error.
+
+
 
 init() ->
     create_table().
@@ -211,6 +245,53 @@ handle_store_result({atomic, {added, Subscription}}, _) ->
     {added, Subscription};
 handle_store_result({atomic, {error, id_exists}}, Subscription) ->
     store_subscription(Subscription).
+
+
+get_subscription_list(Realm) ->
+    MatchHead = #ctr_subscription{realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    Lookup =
+        fun() ->
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
+                    List when is_list(List) ->
+                        {ok, List};
+                    Other ->
+                        {error, Other}
+                end
+        end,
+    Result = mnesia:transaction(Lookup),
+    handle_subscription_list_result(Result).
+
+handle_subscription_list_result({atomic, {ok, List}}) ->
+    {ok, List};
+handle_subscription_list_result(Other) ->
+    lager:error("subscription get list error: ~p", Other),
+    {ok, []}.
+
+lookup_subscription(Id, Realm) ->
+    MatchHead = #ctr_subscription{id=Id, realm=Realm, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    Lookup =
+        fun() ->
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
+                    [Subscription] ->
+                        {ok, Subscription};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(Lookup),
+    handle_subscription_list_result(Result).
+
+handle_subscription_lookup_result({atomic, Result}) ->
+    Result;
+handle_subscription_lookup_result(Other) ->
+    lager:error("subscription lookup error: ~p", Other),
+    {error, not_found}.
 
 
 store_publication(Pub0) ->

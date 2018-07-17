@@ -79,8 +79,8 @@ reg_callee_count(Args, Kw, Realm) ->
 
 
 
-subs_list(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subs_list(Args, Kw, Realm) ->
+    ctr_callee_subscription:list(Args, Kw, Realm).
 
 subs_lookup(_Args, _Kw, _Realm) ->
     throw(no_such_procedure).
@@ -88,11 +88,11 @@ subs_lookup(_Args, _Kw, _Realm) ->
 subs_match(_Args, _Kw, _Realm) ->
     throw(no_such_procedure).
 
-subs_get(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subs_get(Args, Kw, Realm) ->
+    ctr_callee_subscription:get(Args, Kw, Realm).
 
-subs_sub_list(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subs_sub_list(Args, Kw, Realm) ->
+    ctr_callee_subscription:subscriber(Args, Kw, Realm).
 
-subs_sub_count(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+subs_sub_count(Args, Kw, Realm) ->
+    ctr_callee_subscription:subscriber_count(Args, Kw, Realm).
