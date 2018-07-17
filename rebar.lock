@@ -9,7 +9,7 @@
   0},
  {<<"ct_stats">>,
   {git,"https://github.com/CargoTube/ct_stats.git",
-       {ref,"3e6590abecb0f3e84c6ae32f72d4b1f875110d1f"}},
+       {ref,"f668b29adadc9536d1f0960f8f3b8008125adbc6"}},
   0},
  {<<"eper">>,{pkg,<<"eper">>,<<"0.94.0">>},0},
  {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},1},

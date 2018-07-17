@@ -7,7 +7,7 @@
         ]).
 
 list(_, _, Realm) ->
-    {ok, Map} = ctr_dealer:get_registrations_lists(Realm),
+    {ok, Map} = ctr_dealer:get_registration_lists(Realm),
     {[Map], undefined}.
 
 get([Id], _, Realm) ->
