@@ -11,11 +11,11 @@ list(_, _, Realm) ->
     {[Map], undefined}.
 
 get([Id], _, Realm) ->
-    Result = ctr_dealer:lookup_registration(Id, Realm),
+    Result = ctr_dealer:get_registration(Id, Realm),
     handle_registration_result(Result).
 
 callees([Id], _, Realm) ->
-    Result = ctr_dealer:lookup_registration(Id, Realm),
+    Result = ctr_dealer:get_registration(Id, Realm),
     handle_callee_list_result(Result).
 
 
