@@ -42,7 +42,9 @@ handle_call({call, ReqId, _Options, Procedure, Args, ArgsKw}, Session) ->
         {ResArgs, ResArgsKw} = Fun(Args, ArgsKw, Realm),
         ?RESULT(ReqId, #{}, ResArgs, ResArgsKw)
     catch Error ->
-            ?ERROR(call, ReqId, #{}, Error)
+            ?ERROR(call, ReqId, #{}, Error);
+          error:function_clause ->
+            ?ERROR(call, ReqId, #{}, invalid_argument)
     end.
 
 
