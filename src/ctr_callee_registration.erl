@@ -20,7 +20,7 @@ callees([Id], _, Realm) ->
 
 
 callee_count([Id], _, Realm) ->
-    Result = ctr_dealer:lookup_registration(Id, Realm),
+    Result = ctr_dealer:get_registration(Id, Realm),
     handle_callee_count_result(Result).
 
 handle_registration_result({ok, RegistrationMap}) ->
