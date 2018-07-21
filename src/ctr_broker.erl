@@ -45,6 +45,11 @@ send_subscription_meta_event(Event, Session, Subscription)
               ],
     {Event, Uri} = lists:keyfind(Event, 1, Mapping),
 
+    SubUri = ctr_subscription:get_uri(Subscription),
+    IsMeta = is_tuple(lists:keyfind(SubUri, 2, Mapping)),
+    maybe_suppress_subscription_meta_event(IsMeta, Uri, Subscription, Session).
+
+maybe_suppress_subscription_meta_event(false, Uri, Subscription, Session) ->
     SessId = cta_session:get_id(Session),
     Keys = [id, created, match, uri],
     SubscriptionMap = ctr_subscription:to_map(Subscription),
@@ -52,7 +57,10 @@ send_subscription_meta_event(Event, Session, Subscription)
 
     do_publish(?PUBLISH(-1, #{exclude_me => false}, Uri, [SessId, Details]),
                Session),
+    ok;
+maybe_suppress_subscription_meta_event(true, _, _, _) ->
     ok.
+
 
 
 unsubscribe_all(Session) ->
