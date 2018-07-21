@@ -97,7 +97,7 @@ handle_call_registration({ok, system}, Msg, Session) ->
     ok;
 handle_call_registration({ok, Registration}, Msg, Session) ->
     RegId = ctr_registration:get_id(Registration),
-    Callees = ctr_regristration:get_callees(Registration),
+    Callees = ctr_registration:get_callees(Registration),
     ctrd_invocation:new(RegId, Callees, Msg, Session),
     ok;
 handle_call_registration({error, not_found}, Msg, Session) ->
