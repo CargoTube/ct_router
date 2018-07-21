@@ -50,7 +50,8 @@ send_subscription_meta_event(Event, Session, Subscription)
     SubscriptionMap = ctr_subscription:to_map(Subscription),
     Details = maps:with(Keys, SubscriptionMap),
 
-    do_publish(?PUBLISH(-1, #{}, Uri, [SessId, Details]), Session),
+    do_publish(?PUBLISH(-1, #{exclude_me => false}, Uri, [SessId, Details]),
+               Session),
     ok.
 
 
