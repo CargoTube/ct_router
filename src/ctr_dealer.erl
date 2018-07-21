@@ -1,14 +1,10 @@
 -module(ctr_dealer).
 
-
 -include_lib("ct_msg/include/ct_msg.hrl").
--include("ct_router.hrl").
 
 -export([
          handle_message/3,
          unregister_all/1,
-         get_registration_lists/1,
-         get_registration/2,
 
          init/0
         ]).
@@ -42,59 +38,18 @@ unregister_all(Session) ->
     ok.
 
 
-get_registration_lists(Realm) ->
-    {ok, Registrations} = ctr_dealer_data:get_registrations_of_realm(Realm),
-
-    Separator = fun(#ctr_registration{ id = Id, match = exact },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { [ Id | ExactList ], PrefixList, WildcardList };
-                   (#ctr_registration{ id = Id, match = prefix },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, [ Id | PrefixList], WildcardList };
-                   (#ctr_registration{ id = Id, match = wildcard },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, PrefixList, [ Id | WildcardList ] }
-                end,
-    {E, P, W} = lists:foldl(Separator, {[], [], []}, Registrations),
-    {ok, #{exact => E, prefix => P, wildcard => W}}.
-
-
-get_registration(Id, Realm) ->
-    Result = ctr_dealer_data:lookup_regisration(Id, Realm),
-    maybe_convert_to_map(Result).
-
-maybe_convert_to_map({ok, #ctr_registration{id = Id, created = Created,
-                                            procedure = Uri, match = Match,
-                                            invoke = Invoke,
-                                            callee_sess_ids = Callees }}) ->
-
-    {ok, #{id => Id, created => iso8601:format(Created), uri => Uri,
-           match => Match, invoke => Invoke, callees => Callees}};
-maybe_convert_to_map(Other) ->
-    Other.
-
-
-
 
 do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    NewId = ctr_utils:gen_global_id(),
 
-
-    NewReg = #ctr_registration{
-                id = NewId,
-                procedure = Procedure,
-                realm = Realm,
-                created = calendar:universal_time(),
-                callee_sess_ids = [SessId]
-               },
+    NewReg = ctr_registration:new(Procedure, Realm, SessId),
     Result = ctr_dealer_data:store_registration(NewReg),
     handle_register_result(Result, Msg, Session).
 
 
-handle_register_result({created, #ctr_registration{id = RegId}},
-                       Msg, Session) ->
+handle_register_result({created, Registration}, Msg, Session) ->
+    RegId = ctr_registration:get_id(Registration),
     %% TODO: meta events
     send_registered(Msg, RegId, Session);
 handle_register_result({error, procedure_exists}, Msg, Session) ->
@@ -124,10 +79,10 @@ find_registration(false, Procedure, Session) ->
 
 
 handle_unregister_result({atomic, {removed, Registration}}, Msg, Session) ->
-    #ctr_registration{id = RegId} = Registration,
+    RegId = ctr_registration:get_id(Registration),
     send_unregistered(Msg, RegId, Session);
 handle_unregister_result({atomic, {deleted, Registration}}, Msg, Session) ->
-    #ctr_registration{id = RegId} = Registration,
+    RegId = ctr_registration:get_id(Registration),
     send_unregistered(Msg, RegId, Session),
     %% TODO: meta events
     ok;
@@ -141,12 +96,9 @@ handle_call_registration({ok, system}, Msg, Session) ->
     ok = ct_router:to_session(Session, Response),
     ok;
 handle_call_registration({ok, Registration}, Msg, Session) ->
-    #ctr_registration{
-       id = RegistrationId,
-       callee_sess_ids = CalleeIds
-      } = Registration,
-
-    ctrd_invocation:new(RegistrationId, CalleeIds, Msg, Session),
+    RegId = ctr_registration:get_id(Registration),
+    Callees = ctr_regristration:get_callees(Registration),
+    ctrd_invocation:new(RegId, Callees, Msg, Session),
     ok;
 handle_call_registration({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
