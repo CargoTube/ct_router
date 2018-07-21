@@ -9,9 +9,7 @@
          unsubscribe_all/1,
 
          send_session_meta_event/2,
-
-         get_list_map/1,
-         get_map/2,
+         %% send_subscription_meta_event/2,
 
          init/0
         ]).
@@ -28,13 +26,16 @@ send_session_meta_event(join, Session) ->
     Keys = [session, authid, authrole, authmethod,
            authprovider, transport],
     Info = maps:with(Keys, cta_session:to_map(Session)),
-    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_join">>, [Info]), Session),
+    Realm = cta_session:get_realm(Session),
+    SysSess = cta_session:system_session(Realm),
+    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_join">>, [Info]), SysSess),
     ok;
 send_session_meta_event(leave, Session) ->
     Id = cta_session:get_id(Session),
-    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_leave">>, [Id]), Session),
+    Realm = cta_session:get_realm(Session),
+    SysSess = cta_session:system_session(Realm),
+    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_leave">>, [Id]), SysSess),
     ok.
-
 
 
 unsubscribe_all(Session) ->
@@ -42,46 +43,15 @@ unsubscribe_all(Session) ->
     SessionId = cta_session:get_id(Session),
 
     Delete = fun(SubId, ok) ->
-                     delete_subscription(SubId, SessionId),
+                     ctr_broker_data:delete_subscription(SubId, SessionId),
                      ok
              end,
     lists:foldl(Delete, ok, Subs),
     ok.
 
 
-get_list_map(Realm) ->
-    {ok, Subscriptions} = get_subscription_list(Realm),
-
-    Separator = fun(#ctr_subscription{ id = Id, match = exact },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { [ Id | ExactList ], PrefixList, WildcardList };
-                   (#ctr_subscription{ id = Id, match = prefix },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, [ Id | PrefixList], WildcardList };
-                   (#ctr_subscription{ id = Id, match = wildcard },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, PrefixList, [ Id | WildcardList ] }
-                end,
-    {E, P, W} = lists:foldl(Separator, {[], [], []}, Subscriptions),
-    {ok, #{exact => E, prefix => P, wildcard => W}}.
-
-get_map(Id, Realm) ->
-    Result = lookup_subscription(Id, Realm),
-    maybe_convert_to_map(Result).
-
-maybe_convert_to_map({ok, #ctr_subscription{id = Id, created = Created,
-                                            uri = Uri, match = Match,
-                                            subscribers = Subs }}) ->
-
-    {ok, #{id => Id, created => iso8601:format(Created), match => Match,
-           uri => Uri, subs => Subs}};
-maybe_convert_to_map({error, _} = Error) ->
-    Error.
-
-
-
 init() ->
-    create_table().
+    ctr_broker_data:create_table().
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
@@ -93,15 +63,14 @@ do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
                 created = calendar:universal_time(),
                 subscribers = [SessionId]
                },
-    Result = store_subscription(NewSub),
+    Result = ctr_broker_data:store_subscription(NewSub),
     handle_subscribe_result(Result, Msg, Session).
 
 
 do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
     SessionId = cta_session:get_id(Session),
-    Result = delete_subscription(SubId, SessionId),
+    Result = ctr_broker_data:delete_subscription(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
-
 
 
 do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
@@ -118,7 +87,7 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
                 arguments = Arguments,
                 argumentskw = ArgumentsKw},
 
-    {ok, Publication} = store_publication(NewPub),
+    {ok, Publication} = ctr_broker_data:store_publication(NewPub),
     #ctr_publication{
        id = PubId,
        sub_id = SubId,
@@ -195,202 +164,4 @@ send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs) ->
 maybe_send_published(true, RequestId, PubId, Session) ->
     ok = ct_router:to_session(Session, ?PUBLISHED(RequestId, PubId));
 maybe_send_published(false, _, _, _) ->
-    ok.
-
-store_subscription(Sub0) ->
-    #ctr_subscription{
-       uri = Uri,
-       realm = Realm,
-       subscribers = [SessionId]
-      } = Sub0,
-    NewId = ctr_utils:gen_global_id(),
-    NewSub = Sub0#ctr_subscription{id = NewId},
-
-    MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
-
-    WriteIfNew =
-        fun(Id, Sub) ->
-                case mnesia:wread({ctr_subscription, Id}) of
-                    [] ->
-                        ok = mnesia:write(Sub),
-                        {created, Sub};
-                    _ ->
-                        {error, id_exists}
-                end
-        end,
-
-    Store =
-        fun() ->
-                case mnesia:select(ctr_subscription, MatchSpec, write) of
-                    [#ctr_subscription{subscribers = Subs } = Subscription] ->
-                        NewSubs = [ SessionId |
-                                    lists:delete(SessionId, Subs)],
-                        NewSubscription = Subscription#ctr_subscription{
-                                            subscribers = NewSubs
-                                           },
-                        ok = mnesia:write(NewSubscription),
-                        {added, NewSubscription};
-                    [] ->
-                        WriteIfNew(NewId, NewSub)
-                end
-        end,
-    Result = mnesia:transaction(Store),
-    handle_store_result(Result, Sub0).
-
-handle_store_result({atomic, {created, Subscription}}, _) ->
-    {created, Subscription};
-handle_store_result({atomic, {added, Subscription}}, _) ->
-    {added, Subscription};
-handle_store_result({atomic, {error, id_exists}}, Subscription) ->
-    store_subscription(Subscription).
-
-
-get_subscription_list(Realm) ->
-    MatchHead = #ctr_subscription{realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
-    Lookup =
-        fun() ->
-                case mnesia:select(ctr_subscription, MatchSpec, write) of
-                    List when is_list(List) ->
-                        {ok, List};
-                    Other ->
-                        {error, Other}
-                end
-        end,
-    Result = mnesia:transaction(Lookup),
-    handle_subscription_list_result(Result).
-
-handle_subscription_list_result({atomic, {ok, List}}) ->
-    {ok, List};
-handle_subscription_list_result(Other) ->
-    lager:error("subscription get list error: ~p", Other),
-    {ok, []}.
-
-lookup_subscription(Id, Realm) ->
-    MatchHead = #ctr_subscription{id=Id, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatchSpec = [{MatchHead, Guard, GiveObject}],
-    Lookup =
-        fun() ->
-                case mnesia:select(ctr_subscription, MatchSpec, write) of
-                    [Subscription] ->
-                        {ok, Subscription};
-                    _ ->
-                        {error, not_found}
-                end
-        end,
-    Result = mnesia:transaction(Lookup),
-    handle_subscription_list_result(Result).
-
-handle_subscription_lookup_result({atomic, Result}) ->
-    Result;
-handle_subscription_lookup_result(Other) ->
-    lager:error("subscription lookup error: ~p", Other),
-    {error, not_found}.
-
-
-store_publication(Pub0) ->
-    #ctr_publication{
-       realm = Realm,
-       topic = Topic,
-       pub_sess_id = SessId
-      } = Pub0,
-    {ok, Session} = cta_session:lookup(SessId),
-    Realm = cta_session:get_realm(Session),
-    NewPubId = ctr_utils:gen_global_id(),
-
-    NewPub = Pub0#ctr_publication{id = NewPubId},
-
-    MatchHead = #ctr_subscription{uri=Topic, realm=Realm, _='_'},
-    Guard = [],
-    GiveObject = ['$_'],
-    MatSpec = [{MatchHead, Guard, GiveObject}],
-
-
-    UpdateOrWriteNew =
-        fun([#ctr_subscription{id = SubId, subscribers = Subs}]) ->
-                UpdatedPub = NewPub#ctr_publication{sub_id=SubId, subs = Subs},
-                ok = mnesia:write(UpdatedPub),
-                {ok, UpdatedPub};
-           ([]) ->
-                ok = mnesia:write(NewPub),
-                {ok, NewPub}
-        end,
-
-    LookupAndStore =
-        fun() ->
-                case mnesia:wread({ctr_publication, NewPubId}) of
-                    [] ->
-                        Found = mnesia:select(ctr_subscription, MatSpec, write),
-                        UpdateOrWriteNew(Found);
-                    _ ->
-                        {error, pub_id_exists}
-                end
-        end,
-    Result = mnesia:transaction(LookupAndStore),
-    handle_publication_store_result(Result, Pub0).
-
-
-handle_publication_store_result({atomic, {ok, Publication}}, _Pub0) ->
-    {ok, Publication};
-handle_publication_store_result({atomic, {error, pub_id_exists}}, Pub0) ->
-    store_publication(Pub0).
-
-
-delete_subscription(SubId, SessionId) ->
-    DeleteOrUpdateSubscription =
-        fun([], Subscription) ->
-                mnesia:delete({ctr_subscription, SubId}),
-                {deleted, Subscription};
-           (_, Subscription) ->
-                ok = mnesia:write(Subscription),
-                {removed, Subscription}
-        end,
-
-    Delete =
-        fun() ->
-                case mnesia:wread({ctr_subscription, SubId}) of
-                    [#ctr_subscription{subscribers = Subs } = Subscription] ->
-                        NewSubscriber = lists:delete(SessionId, Subs),
-                        UpdatedSubscription = Subscription#ctr_subscription{
-                                            subscribers = NewSubscriber
-                                           },
-                        DeleteOrUpdateSubscription(NewSubscriber,
-                                                   UpdatedSubscription);
-                    [] ->
-                        {error, not_found}
-                end
-        end,
-    Result = mnesia:transaction(Delete),
-    handle_delete_result(Result).
-
-
-handle_delete_result({atomic, {deleted, Subscription}}) ->
-    {deleted, Subscription};
-handle_delete_result({atomic, {removed, Subscription}}) ->
-    {removed, Subscription};
-handle_delete_result({atomic, {error, not_found}}) ->
-    {error, not_found}.
-
-
-
-create_table() ->
-    mnesia:delete_table(ctr_subscription),
-    mnesia:delete_table(ctr_publication),
-    SubDef = [{attributes, record_info(fields, ctr_subscription)},
-              {ram_copies, [node()]},
-              {index, [realm, uri, match]}
-             ],
-    PubDef = [{attributes, record_info(fields, ctr_publication)},
-              {ram_copies, [node()]},
-              {index, [realm, topic]}
-             ],
-    {atomic, ok} = mnesia:create_table(ctr_subscription, SubDef),
-    {atomic, ok} = mnesia:create_table(ctr_publication, PubDef),
     ok.

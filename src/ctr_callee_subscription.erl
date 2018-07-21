@@ -1,5 +1,7 @@
 -module(ctr_callee_subscription).
 
+-include("ct_router.hrl").
+
 -export([ list/3,
           get/3,
           subscriber/3,
@@ -8,16 +10,30 @@
 
 
 list(_Args, _Kw, Realm) ->
-    {ok, Map} = ctr_broker:get_list_map(Realm),
-    {[Map], undefined}.
+    {ok, Subscriptions} = ctr_broker_data:get_subscription_list(Realm),
+
+    Separator = fun(#ctr_subscription{ id = Id, match = exact },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { [ Id | ExactList ], PrefixList, WildcardList };
+                   (#ctr_subscription{ id = Id, match = prefix },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, [ Id | PrefixList], WildcardList };
+                   (#ctr_subscription{ id = Id, match = wildcard },
+                    {ExactList, PrefixList, WildcardList}) ->
+                        { ExactList, PrefixList, [ Id | WildcardList ] }
+                end,
+    {E, P, W} = lists:foldl(Separator, {[], [], []}, Subscriptions),
+    { [#{exact => E, prefix => P, wildcard => W}], undefined}.
 
 get([Id], _Kw, Realm) ->
-    Result = ctr_broker:get_map(Id, Realm),
+    Result = ctr_broker_data:get_subscription(Id, Realm),
     handle_get_result(Result).
 
-handle_get_result({ok, Map}) ->
-    Keys = [id, match, created, uri],
-    {[maps:with(Keys, Map)], undefined};
+handle_get_result({ok, #ctr_subscription{id = Id, created = Created,
+                                             uri = Uri, match = Match }}) ->
+
+    { [ #{id => Id, created => iso8601:format(Created), match => Match,
+           uri => Uri}], undefined};
 handle_get_result(_) ->
     throw(no_such_registration).
 
