@@ -73,13 +73,7 @@ init() ->
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     SessionId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    NewSub = #ctr_subscription{
-                uri = Uri,
-                realm = Realm,
-                created = calendar:universal_time(),
-                subscribers = [SessionId]
-               },
-    Result = ctr_broker_data:store_subscription(NewSub),
+    Result = ctr_broker_data:add_subscription(Uri, Realm, SessionId),
     handle_subscribe_result(Result, Msg, Session).
 
 
@@ -125,23 +119,23 @@ handle_subscribe_result({created, Subscription}, Msg, Session) ->
 
 
 handle_unsubscribe_result({removed, Subscription}, Msg, Session) ->
-    #ctr_subscription{id = SubId} = Subscription,
-    send_unsubscribed(Msg, SubId, Session);
+    send_unsubscribed(Msg, Subscription, Session);
 handle_unsubscribe_result({deleted, Subscription}, Msg, Session) ->
-    #ctr_subscription{id = SubId} = Subscription,
-    send_unsubscribed(Msg, SubId, Session),
+    send_unsubscribed(Msg, Subscription, Session),
     send_subscription_meta_event(delete, Session, Subscription),
     ok;
 handle_unsubscribe_result({error, not_found}, Msg, Session) ->
     {unsubscribe, _, SubId} = Msg,
-    HasSubscription = cta_session:has_subscription(SubId, Session),
-    maybe_send_unsubscribe(HasSubscription, Msg, SubId, Session).
-
+    false = cta_session:has_subscription(SubId, Session),
+    {ok, RequestId} = ct_msg:get_request_id(Msg),
+    Error = ?ERROR(unsubscribe, RequestId, #{}, no_such_subscription),
+    ok = ct_router:to_session(Session, Error),
+    ok.
 
 
 send_subscribed(Msg, Subscription, Session) ->
     #ctr_subscription{ id = SubId } = Subscription,
-    send_subscription_meta_event(subscribe, Session, Subscription),
+    ok = send_subscription_meta_event(subscribe, Session, Subscription),
     {ok, NewSession} = cta_session:add_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?SUBSCRIBED(RequestId, SubId)),
@@ -149,19 +143,12 @@ send_subscribed(Msg, Subscription, Session) ->
 
 send_unsubscribed(Msg, Subscription, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
-    send_subscription_meta_event(unsubscribe, Session, Subscription),
+    ok = send_subscription_meta_event(unsubscribe, Session, Subscription),
     {ok, NewSession} = cta_session:remove_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNSUBSCRIBED(RequestId)),
     ok.
 
-maybe_send_unsubscribe(true, Msg, SubId, Session) ->
-    send_unsubscribed(Msg, SubId, Session);
-maybe_send_unsubscribe(false, Msg, _SubId, Session ) ->
-    {ok, RequestId} = ct_msg:get_request_id(Msg),
-    Error = ?ERROR(unsubscribe, RequestId, #{}, no_such_subscription),
-    ok = ct_router:to_session(Session, Error),
-    ok.
 
 send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs) ->
     Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),

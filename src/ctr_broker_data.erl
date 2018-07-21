@@ -5,7 +5,7 @@
 -export([
          get_subscription/2,
          get_subscription_list/1,
-         store_subscription/1,
+         add_subscription/3,
          delete_subscription/2,
 
          store_publication/1,
@@ -60,14 +60,13 @@ handle_subscription_list_result(Other) ->
     lager:error("subscription get list error: ~p", Other),
     {ok, []}.
 
-store_subscription(Sub0) ->
-    #ctr_subscription{
-       uri = Uri,
-       realm = Realm,
-       subscribers = [SessionId]
-      } = Sub0,
+add_subscription(Uri, Realm, SessionId) ->
     NewId = ctr_utils:gen_global_id(),
-    NewSub = Sub0#ctr_subscription{id = NewId},
+    NewSub = #ctr_subscription{id = NewId,
+                               uri = Uri,
+                               realm = Realm,
+                               subscribers = [SessionId]
+                              },
 
     MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
     Guard = [],
@@ -101,14 +100,16 @@ store_subscription(Sub0) ->
                 end
         end,
     Result = mnesia:transaction(Store),
-    handle_store_result(Result, Sub0).
+    handle_store_result(Result, NewSub).
 
 handle_store_result({atomic, {created, Subscription}}, _) ->
     {created, Subscription};
 handle_store_result({atomic, {added, Subscription}}, _) ->
     {added, Subscription};
 handle_store_result({atomic, {error, id_exists}}, Subscription) ->
-    store_subscription(Subscription).
+    #ctr_subscription{ realm = Realm, subscribers = [SessionId],
+                       uri = Uri} = Subscription,
+    add_subscription(Uri, Realm, SessionId).
 
 delete_subscription(SubId, SessionId) ->
     DeleteOrUpdateSubscription =
