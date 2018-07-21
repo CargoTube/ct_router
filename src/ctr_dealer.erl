@@ -119,7 +119,7 @@ do_call({call, _ReqId, _Options, Procedure, _Arguments, _ArgumentsKw} = Msg,
 find_registration(true, _, _) ->
     {ok, system};
 find_registration(false, Procedure, Session) ->
-    ctr_dealer_date:find_registration(Procedure, Session).
+    ctr_dealer_data:find_registration(Procedure, Session).
 
 
 
