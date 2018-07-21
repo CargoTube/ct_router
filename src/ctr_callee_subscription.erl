@@ -37,12 +37,23 @@ handle_get_result(_) ->
     throw(no_such_registration).
 
 subscriber([Id], _Kw, Realm) ->
-    Result = ctr_broker:get_map(Id, Realm),
+    Result = get_subscription_map(Id, Realm),
     {[to_subscriber_list(Result)], undefined}.
 
 subscriber_count([Id], _Kw, Realm) ->
-    Result = ctr_broker:get_map(Id, Realm),
+    Result = get_subscription_map(Id, Realm),
     {[length(to_subscriber_list(Result))], undefined}.
+
+
+get_subscription_map(Id, Realm) ->
+    Result = ctr_broker_data:get_subscription(Id, Realm),
+    maybe_convert_to_map(Result).
+
+maybe_convert_to_map({ok, Subscription}) ->
+    {ok, ctr_subscription:to_map(Subscription)};
+maybe_convert_to_map(Error) ->
+    Error.
+
 
 to_subscriber_list({ok, #{subs := Subs}}) ->
     Subs;
