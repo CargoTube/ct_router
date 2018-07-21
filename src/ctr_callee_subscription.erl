@@ -29,11 +29,10 @@ get([Id], _Kw, Realm) ->
     Result = ctr_broker_data:get_subscription(Id, Realm),
     handle_get_result(Result).
 
-handle_get_result({ok, #ctr_subscription{id = Id, created = Created,
-                                             uri = Uri, match = Match }}) ->
-
-    { [ #{id => Id, created => iso8601:format(Created), match => Match,
-           uri => Uri}], undefined};
+handle_get_result({ok, Subscription}) ->
+    Keys = [id, created, match, uri],
+    SubscriptionMap = ctr_subscription:to_map(Subscription),
+    { [maps:with(Keys, SubscriptionMap) ], undefined};
 handle_get_result(_) ->
     throw(no_such_registration).
 
