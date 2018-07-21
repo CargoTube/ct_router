@@ -34,28 +34,28 @@ handle_get_result({ok, Subscription}) ->
     SubscriptionMap = ctr_subscription:to_map(Subscription),
     { [maps:with(Keys, SubscriptionMap) ], undefined};
 handle_get_result(_) ->
-    throw(no_such_registration).
+    throw(no_such_subscription).
 
 subscriber([Id], _Kw, Realm) ->
-    Result = get_subscription_map(Id, Realm),
+    Result = get_subscription_subscribers(Id, Realm),
     {[to_subscriber_list(Result)], undefined}.
 
 subscriber_count([Id], _Kw, Realm) ->
-    Result = get_subscription_map(Id, Realm),
+    Result = get_subscription_subscribers(Id, Realm),
     {[length(to_subscriber_list(Result))], undefined}.
 
 
-get_subscription_map(Id, Realm) ->
+get_subscription_subscribers(Id, Realm) ->
     Result = ctr_broker_data:get_subscription(Id, Realm),
-    maybe_convert_to_map(Result).
+    maybe_get_subscribers(Result).
 
-maybe_convert_to_map({ok, Subscription}) ->
-    {ok, ctr_subscription:to_map(Subscription)};
-maybe_convert_to_map(Error) ->
+maybe_get_subscribers({ok, Subscription}) ->
+    {ok, ctr_subscription:get_subscribers(Subscription)};
+maybe_get_subscribers(Error) ->
     Error.
 
 
-to_subscriber_list({ok, #{subs := Subs}}) ->
+to_subscriber_list({ok, Subs}) ->
     Subs;
 to_subscriber_list(_) ->
-    throw(no_such_registration).
+    throw(no_such_subscription).
