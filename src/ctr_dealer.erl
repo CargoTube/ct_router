@@ -77,11 +77,9 @@ find_registration(false, Procedure, Session) ->
 
 
 handle_unregister_result({atomic, {removed, Registration}}, Msg, Session) ->
-    RegId = ctr_registration:get_id(Registration),
-    send_unregistered(Msg, RegId, Session);
+    send_unregistered(Msg, Registration, Session);
 handle_unregister_result({atomic, {deleted, Registration}}, Msg, Session) ->
-    RegId = ctr_registration:get_id(Registration),
-    send_unregistered(Msg, RegId, Session),
+    send_unregistered(Msg, Registration, Session),
     ctr_broker:send_registration_meta_event(delete, Session, Registration),
     ok;
 handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
