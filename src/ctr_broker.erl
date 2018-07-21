@@ -9,7 +9,7 @@
          unsubscribe_all/1,
 
          send_session_meta_event/2,
-         %% send_subscription_meta_event/2,
+         send_subscription_meta_event/3,
 
          init/0
         ]).
@@ -31,6 +31,26 @@ send_session_meta_event(join, Session) ->
 send_session_meta_event(leave, Session) ->
     Id = cta_session:get_id(Session),
     do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_leave">>, [Id]), Session),
+    ok.
+
+
+send_subscription_meta_event(Event, Session, Subscription)
+  when Event == create; Event == subscribe; Event == unsubscribe;
+       Event == delete ->
+    Mapping = [
+               {create, <<"wamp.subscription.on_create">>},
+               {subscribe, <<"wamp.subscription.on_subscribe">>},
+               {unsubscribe, <<"wamp.subscription.on_unsubscribe">>},
+               {delete, <<"wamp.subscription.on_delete">>}
+              ],
+    {Event, Uri} = lists:keyfind(Event, 1, Mapping),
+
+    SessId = cta_session:get_id(Session),
+    Keys = [id, created, match, uri],
+    SubscriptionMap = ctr_subscription:to_map(Subscription),
+    Details = maps:with(Keys, SubscriptionMap),
+
+    do_publish(?PUBLISH(-1, #{}, Uri, [SessId, Details]), Session),
     ok.
 
 
@@ -97,12 +117,10 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
 
 
 handle_subscribe_result({added, Subscription}, Msg, Session) ->
-    #ctr_subscription{ id = SubId } = Subscription,
-    send_subscribed(Msg, SubId, Session);
+    send_subscribed(Msg, Subscription, Session);
 handle_subscribe_result({created, Subscription}, Msg, Session) ->
-    #ctr_subscription{id = SubId} = Subscription,
-    %% TODO: meta events
-    send_subscribed(Msg, SubId, Session).
+    send_subscription_meta_event(create, Session, Subscription),
+    send_subscribed(Msg, Subscription, Session).
 
 
 
@@ -112,7 +130,7 @@ handle_unsubscribe_result({removed, Subscription}, Msg, Session) ->
 handle_unsubscribe_result({deleted, Subscription}, Msg, Session) ->
     #ctr_subscription{id = SubId} = Subscription,
     send_unsubscribed(Msg, SubId, Session),
-    %% TODO: meta events
+    send_subscription_meta_event(delete, Session, Subscription),
     ok;
 handle_unsubscribe_result({error, not_found}, Msg, Session) ->
     {unsubscribe, _, SubId} = Msg,
@@ -121,15 +139,17 @@ handle_unsubscribe_result({error, not_found}, Msg, Session) ->
 
 
 
-send_subscribed(Msg, SubId, Session) ->
-    %% TODO: meta events
+send_subscribed(Msg, Subscription, Session) ->
+    #ctr_subscription{ id = SubId } = Subscription,
+    send_subscription_meta_event(subscribe, Session, Subscription),
     {ok, NewSession} = cta_session:add_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?SUBSCRIBED(RequestId, SubId)),
     ok.
 
-send_unsubscribed(Msg, SubId, Session) ->
-    %% TODO: meta events
+send_unsubscribed(Msg, Subscription, Session) ->
+    #ctr_subscription{id = SubId} = Subscription,
+    send_subscription_meta_event(unsubscribe, Session, Subscription),
     {ok, NewSession} = cta_session:remove_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNSUBSCRIBED(RequestId)),
