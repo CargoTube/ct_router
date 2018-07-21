@@ -2,7 +2,6 @@
 
 
 -include_lib("ct_msg/include/ct_msg.hrl").
--include("ct_router.hrl").
 
 -export([
          handle_message/3,
@@ -97,21 +96,12 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
     Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
 
-    NewPub = #ctr_publication{
-                realm = Realm,
-                topic = Topic,
-                options = Options,
-                pub_sess_id = SessionId,
-                ts = calendar:universal_time(),
-                arguments = Arguments,
-                argumentskw = ArgumentsKw},
-
+    NewPub = ctr_publication:new(Realm, Topic, Options, Arguments, ArgumentsKw,
+                                 SessionId),
     {ok, Publication} = ctr_broker_data:store_publication(NewPub),
-    #ctr_publication{
-       id = PubId,
-       sub_id = SubId,
-       subs = AllSubs
-      } = Publication,
+    PubId = ctr_publication:get_id(Publication),
+    SubId = ctr_publication:get_subscription_id(Publication),
+    AllSubs = ctr_publication:get_subscribers(Publication),
     Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, SessionId),
     send_event(Msg, SubId, PubId, Subs),
 
@@ -143,7 +133,7 @@ handle_unsubscribe_result({error, not_found}, Msg, Session) ->
 
 
 send_subscribed(Msg, Subscription, Session) ->
-    #ctr_subscription{ id = SubId } = Subscription,
+    SubId = ctr_subscription:get_id(Subscription),
     ok = send_subscription_meta_event(subscribe, Session, Subscription),
     {ok, NewSession} = cta_session:add_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
@@ -151,7 +141,7 @@ send_subscribed(Msg, Subscription, Session) ->
     ok.
 
 send_unsubscribed(Msg, Subscription, Session) ->
-    #ctr_subscription{id = SubId} = Subscription,
+    SubId = ctr_subscription:get_id(Subscription),
     ok = send_subscription_meta_event(unsubscribe, Session, Subscription),
     {ok, NewSession} = cta_session:remove_subscription(SubId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
