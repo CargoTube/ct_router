@@ -65,7 +65,8 @@ add_subscription(Uri, Realm, SessionId) ->
     NewSub = #ctr_subscription{id = NewId,
                                uri = Uri,
                                realm = Realm,
-                               subscribers = [SessionId]
+                               subscribers = [SessionId],
+                               created = calendar:univeral_time()
                               },
 
     MatchHead = #ctr_subscription{uri=Uri, realm=Realm, _='_'},
