@@ -1,6 +1,5 @@
 -module(ctr_broker).
 
-
 -include_lib("ct_msg/include/ct_msg.hrl").
 
 -export([
@@ -9,6 +8,7 @@
 
          send_session_meta_event/2,
          send_subscription_meta_event/3,
+         send_registration_meta_event/3,
 
          init/0
         ]).
@@ -60,6 +60,24 @@ maybe_suppress_subscription_meta_event(false, Uri, Subscription, Session) ->
 maybe_suppress_subscription_meta_event(true, _, _, _) ->
     ok.
 
+
+send_registration_meta_event(Event, Session, Registration)
+  when Event == create; Event == register; Event == unregister;
+       Event == delete ->
+    Mapping = [
+               {create, <<"wamp.registration.on_create">>},
+               {register, <<"wamp.registration.on_register">>},
+               {unregister, <<"wamp.registration.on_unregister">>},
+               {delete, <<"wamp.registration.on_delete">>}
+              ],
+    {Event, Uri} = lists:keyfind(Event, 1, Mapping),
+    SessId = cta_session:get_id(Session),
+    Keys = [id, created, uri, match, invoke],
+    RegistrationMap = ctr_registration:to_map(Registration),
+    Details = maps:with(Keys, RegistrationMap),
+    do_publish(?PUBLISH(-1, #{exclude_me => false}, Uri, [SessId, Details]),
+               Session),
+    ok.
 
 
 unsubscribe_all(Session) ->

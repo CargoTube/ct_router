@@ -38,7 +38,6 @@ unregister_all(Session) ->
     ok.
 
 
-
 do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
@@ -49,9 +48,8 @@ do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
 
 
 handle_register_result({created, Registration}, Msg, Session) ->
-    RegId = ctr_registration:get_id(Registration),
-    %% TODO: meta events
-    send_registered(Msg, RegId, Session);
+    ctr_broker:send_registration_meta_event(create, Session, Registration),
+    send_registered(Msg, Registration, Session);
 handle_register_result({error, procedure_exists}, Msg, Session) ->
     ReqId = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(Session, ?ERROR(register, ReqId, #{},
@@ -84,12 +82,15 @@ handle_unregister_result({atomic, {removed, Registration}}, Msg, Session) ->
 handle_unregister_result({atomic, {deleted, Registration}}, Msg, Session) ->
     RegId = ctr_registration:get_id(Registration),
     send_unregistered(Msg, RegId, Session),
-    %% TODO: meta events
+    ctr_broker:send_registration_meta_event(delete, Session, Registration),
     ok;
 handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     {unregister, _, RegId} = Msg,
-    HasRegistration = cta_session:has_registration(RegId, Session),
-    maybe_send_unregistered(HasRegistration, Msg, RegId, Session).
+    false = cta_session:has_registration(RegId, Session),
+    {ok, RequestId} = ct_msg:get_request_id(Msg),
+    Error = ?ERROR(unregister, RequestId, #{}, no_such_registration),
+    ok = ct_router:to_session(Session, Error),
+    ok.
 
 handle_call_registration({ok, system}, Msg, Session) ->
     Response = ctr_callee:handle_call(Msg, Session),
@@ -107,23 +108,17 @@ handle_call_registration({error, not_found}, Msg, Session) ->
     ok.
 
 
-send_registered(Msg, RegId, Session) ->
-    %% TODO: meta events
+send_registered(Msg, Registration, Session) ->
+    ctr_broker:send_registration_meta_event(register, Session, Registration),
+    RegId = ctr_registration:get_id(Registration),
     {ok, NewSession} = cta_session:add_registration(RegId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?REGISTERED(RequestId, RegId)),
     ok.
 
-maybe_send_unregistered(true, Msg, RegId, Session) ->
-    send_unregistered(Msg, RegId, Session);
-maybe_send_unregistered(false, Msg, _RegId, Session) ->
-    {ok, RequestId} = ct_msg:get_request_id(Msg),
-    Error = ?ERROR(unregister, RequestId, #{}, no_such_registration),
-    ok = ct_router:to_session(Session, Error),
-    ok.
-
-send_unregistered(Msg, RegId, Session) ->
-    %% TODO: meta events
+send_unregistered(Msg, Registration, Session) ->
+    ctr_broker:send_registration_meta_event(unregister, Session, Registration),
+    RegId = ctr_registration:get_id(Registration),
     {ok, NewSession} = cta_session:remove_registration(RegId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNREGISTERED(RequestId)),
