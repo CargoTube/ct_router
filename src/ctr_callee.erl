@@ -30,22 +30,30 @@
          undefined
         ]).
 
-is_procedure(<< Begin:5, _/binary >>) when Begin == <<"wamp.">> ->
-    true;
+is_procedure(<< Prefix:5/binary, _/binary >>) ->
+    Prefix == <<"wamp.">>;
 is_procedure(_) ->
     false.
 
-handle_call({call, ReqId, _Options, Procedure, Args, ArgsKw}, Session) ->
+handle_call({call, ReqId, Options, Procedure, Args, ArgsKw}, Session) ->
     try
-        Realm = cta_session:get_realm(Session),
-        {_, Fun} = lists:keyfind(Procedure, 1, ?PROCEDURES),
-        {ResArgs, ResArgsKw} = Fun(Args, ArgsKw, Realm),
-        ?RESULT(ReqId, #{}, ResArgs, ResArgsKw)
+        Result = lists:keyfind(Procedure, 1, ?PROCEDURES),
+        maybe_call_fun(Result, ReqId, Options, Args, ArgsKw, Session)
     catch Error ->
             ?ERROR(call, ReqId, #{}, Error);
           error:function_clause ->
             ?ERROR(call, ReqId, #{}, invalid_argument)
     end.
+
+
+maybe_call_fun({_, Fun}, RequestId, _Options, Args, ArgsKw, Session) ->
+    Realm = cta_session:get_realm(Session),
+    {ResArgs, ResArgsKw} = Fun(Args, ArgsKw, Realm),
+    ?RESULT(RequestId, #{}, ResArgs, ResArgsKw);
+maybe_call_fun(_, RequesId, _Options, _Args, _ArgsKw, _Session) ->
+    ?ERROR(call, RequesId, #{}, no_such_procedure).
+
+
 
 
 session_count(Args, Kw, Realm) ->
