@@ -31,7 +31,8 @@
         ]).
 
 is_procedure(Procedure) ->
-    Result = binary:match(Procedure, [<<"wamp.">>], [{scope, {0,5}}]),
+    Length = lists:min([byte_size(Procedure), 5]),
+    Result = binary:match(Procedure, [<<"wamp.">>], [{scope, {0, Length}}]),
     is_tuple(Result).
 
 
