@@ -7,7 +7,7 @@
         ]).
 
 list(_, _, Realm) ->
-    {ok, RegMap} = ctr_registration:separated_list_of_realm(Realm),
+    RegMap = ctr_registration:separated_list_of_realm(Realm),
     { [ RegMap ], undefined}.
 
 get([Id], _, Realm) ->

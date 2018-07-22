@@ -9,7 +9,7 @@
 
 
 list(_Args, _Kw, Realm) ->
-    {ok, SubsMap} = ctr_subscription:separated_list_of_realm(Realm),
+    SubsMap = ctr_subscription:separated_list_of_realm(Realm),
     { [SubsMap], undefined}.
 
 get([Id], _Kw, Realm) ->
