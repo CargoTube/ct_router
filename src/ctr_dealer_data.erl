@@ -5,7 +5,7 @@
 -export([init/0,
 
          store_registration/1,
-         find_registration/2,
+         match_registration/2,
 
          get_registrations_of_realm/1,
          lookup_regisration/2,
@@ -55,7 +55,7 @@ handle_store_result({atomic, {error, id_exists}}, Registration) ->
     store_registration(Registration).
 
 
-find_registration(Procedure, Session) ->
+match_registration(Procedure, Session) ->
     Realm = cta_session:get_realm(Session),
 
     MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},

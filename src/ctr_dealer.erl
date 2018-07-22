@@ -11,7 +11,7 @@
 
 init() ->
     ctrd_invocation:init(),
-    ctr_dealer_data:init().
+    ctr_registration:init().
 
 
 handle_message(register, Message, Session) ->
@@ -31,7 +31,7 @@ unregister_all(Session) ->
     SessId = cta_session:get_id(Session),
 
     Delete = fun(RegId, ok) ->
-                     ctr_dealer_data:delete_registration(RegId, SessId),
+                     ctr_registration:delete(RegId, SessId),
                      ok
              end,
     lists:foldl(Delete, ok, Regs),
@@ -42,8 +42,7 @@ do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
 
-    NewReg = ctr_registration:new(Procedure, Realm, SessId),
-    Result = ctr_dealer_data:store_registration(NewReg),
+    Result = ctr_registration:new(Procedure, Realm, SessId),
     handle_register_result(Result, Msg, Session).
 
 
@@ -58,7 +57,7 @@ handle_register_result({error, procedure_exists}, Msg, Session) ->
 
 do_unregister({unregister, _ReqId, RegId} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
-    Result = ctr_dealer_data:delete_registration(RegId, SessId),
+    Result = ctr_registration:delete(RegId, SessId),
     handle_unregister_result(Result, Msg, Session).
 
 
@@ -66,13 +65,13 @@ do_unregister({unregister, _ReqId, RegId} = Msg, Session) ->
 do_call({call, _ReqId, _Options, Procedure, _Arguments, _ArgumentsKw} = Msg,
         Session) ->
     Internal = ctr_callee:is_procedure(Procedure),
-    Result = find_registration(Internal, Procedure, Session),
+    Result = match_registration(Internal, Procedure, Session),
     handle_call_registration(Result, Msg, Session).
 
-find_registration(true, _, _) ->
+match_registration(true, _, _) ->
     {ok, system};
-find_registration(false, Procedure, Session) ->
-    ctr_dealer_data:find_registration(Procedure, Session).
+match_registration(false, Procedure, Session) ->
+    ctr_registration:match(Procedure, Session).
 
 
 

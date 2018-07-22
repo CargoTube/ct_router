@@ -31,7 +31,7 @@
         ]).
 
 is_procedure(Procedure) ->
-    Result = lists:keyfind(Procedure, 1, ?PROCEDURES),
+    Result = binary:match(Procedure, [<<"wamp.">>], [{scope, {0,5}}]),
     is_tuple(Result).
 
 

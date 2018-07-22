@@ -1,6 +1,5 @@
 -module(ctr_callee_subscription).
 
--include("ct_router.hrl").
 
 -export([ list/3,
           get/3,
@@ -10,23 +9,11 @@
 
 
 list(_Args, _Kw, Realm) ->
-    {ok, Subscriptions} = ctr_broker_data:get_subscription_list(Realm),
-
-    Separator = fun(#ctr_subscription{ id = Id, match = exact },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { [ Id | ExactList ], PrefixList, WildcardList };
-                   (#ctr_subscription{ id = Id, match = prefix },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, [ Id | PrefixList], WildcardList };
-                   (#ctr_subscription{ id = Id, match = wildcard },
-                    {ExactList, PrefixList, WildcardList}) ->
-                        { ExactList, PrefixList, [ Id | WildcardList ] }
-                end,
-    {E, P, W} = lists:foldl(Separator, {[], [], []}, Subscriptions),
-    { [#{exact => E, prefix => P, wildcard => W}], undefined}.
+    {ok, SubsMap} = ctr_subscription:separated_list_of_realm(Realm),
+    { [SubsMap], undefined}.
 
 get([Id], _Kw, Realm) ->
-    Result = ctr_broker_data:get_subscription(Id, Realm),
+    Result = ctr_subscription:lookup(Id, Realm),
     handle_get_result(Result).
 
 handle_get_result({ok, Subscription}) ->
@@ -46,7 +33,7 @@ subscriber_count([Id], _Kw, Realm) ->
 
 
 get_subscription_subscribers(Id, Realm) ->
-    Result = ctr_broker_data:get_subscription(Id, Realm),
+    Result = ctr_subscription:lookup(Id, Realm),
     maybe_get_subscribers(Result).
 
 maybe_get_subscribers({ok, Subscription}) ->

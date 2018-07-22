@@ -5,7 +5,9 @@
 -export([new/6,
          get_id/1,
          get_subscription_id/1,
-         get_subscribers/1
+         get_subscribers/1,
+
+         store/1
         ]).
 
 
@@ -26,3 +28,7 @@ get_subscription_id(#ctr_publication{sub_id = SubId}) ->
 
 get_subscribers(#ctr_publication{subs = Subs}) ->
     Subs.
+
+
+store(Publication) ->
+    ctr_broker_data:store_publication(Publication).

@@ -85,7 +85,7 @@ unsubscribe_all(Session) ->
     SessionId = cta_session:get_id(Session),
 
     Delete = fun(SubId, ok) ->
-                     ctr_broker_data:delete_subscription(SubId, SessionId),
+                     ctr_subscription:delete(SubId, SessionId),
                      ok
              end,
     lists:foldl(Delete, ok, Subs),
@@ -93,19 +93,19 @@ unsubscribe_all(Session) ->
 
 
 init() ->
-    ctr_broker_data:create_table().
+    ctr_subscription:init().
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
     SessionId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    Result = ctr_broker_data:add_subscription(Uri, Realm, SessionId),
+    Result = ctr_subscription:new(Uri, Realm, SessionId),
     handle_subscribe_result(Result, Msg, Session).
 
 
 do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
     SessionId = cta_session:get_id(Session),
-    Result = ctr_broker_data:delete_subscription(SubId, SessionId),
+    Result = ctr_subscription:delete(SubId, SessionId),
     handle_unsubscribe_result(Result, Msg, Session).
 
 
@@ -116,7 +116,7 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
 
     NewPub = ctr_publication:new(Realm, Topic, Options, Arguments, ArgumentsKw,
                                  SessionId),
-    {ok, Publication} = ctr_broker_data:store_publication(NewPub),
+    {ok, Publication} = ctr_publication:store(NewPub),
     PubId = ctr_publication:get_id(Publication),
     SubId = ctr_publication:get_subscription_id(Publication),
     AllSubs = ctr_publication:get_subscribers(Publication),
