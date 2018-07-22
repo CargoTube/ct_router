@@ -30,11 +30,10 @@
          undefined
         ]).
 
-is_procedure(Procedure) ->
-    Length = lists:min([byte_size(Procedure), 5]),
-    Result = binary:match(Procedure, [<<"wamp.">>], [{scope, {0, Length}}]),
-    is_tuple(Result).
-
+is_procedure(<< Begin:5, _/binary >>) when Begin == <<"wamp.">> ->
+    true;
+is_procedure(_) ->
+    false.
 
 handle_call({call, ReqId, _Options, Procedure, Args, ArgsKw}, Session) ->
     try
