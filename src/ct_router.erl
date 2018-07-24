@@ -4,7 +4,7 @@
 -include_lib("ct_msg/include/ct_msg.hrl").
 
 -export([
-         handle_hello/2,
+         handle_hello/3,
          handle_authenticate/3,
          handle_established/4,
          handle_session_closed/2,
@@ -55,10 +55,9 @@ agent_roles() ->
      }.
 
 
-handle_hello(Hello, PeerAtGate) ->
-    {_Time, Result} = timer:tc(fun do_handle_hello/2, [Hello, PeerAtGate]),
-    %% ctr_stats:add(hello, Time),
-    Result.
+handle_hello(Hello, PeerAtGate, Transport) ->
+    AuthResult = ct_auth:handle_hello(Hello, PeerAtGate, Transport),
+    handle_auth_result(AuthResult, PeerAtGate).
 
 handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     {_Time, Result} = timer:tc(fun do_handle_authenticate/3, [Authenticate,
@@ -74,9 +73,6 @@ handle_established(Type, Message, SessionId, PeerAtGate) ->
     ctr_stats:add(Type, Time),
     Result.
 
-do_handle_hello(Hello, PeerAtGate) ->
-    AuthResult = ct_auth:handle_hello(Hello, PeerAtGate),
-    handle_auth_result(AuthResult, PeerAtGate).
 
 do_handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     Session = get_session(SessionId, PeerAtGate),
