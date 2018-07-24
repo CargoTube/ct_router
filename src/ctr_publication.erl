@@ -12,13 +12,14 @@
 
 
 new(Realm, Topic, Options, Arguments, ArgumentsKw, SessionId) ->
-    #ctr_publication{realm = Realm,
+    Publication = #ctr_publication{realm = Realm,
                      topic = Topic,
                      options = Options,
                      pub_sess_id = SessionId,
                      ts = calendar:universal_time(),
                      arguments = Arguments,
-                     argumentskw = ArgumentsKw}.
+                     argumentskw = ArgumentsKw},
+    ctr_broker_data:store_publication(Publication).
 
 get_id(#ctr_publication{id = Id}) ->
     Id.
