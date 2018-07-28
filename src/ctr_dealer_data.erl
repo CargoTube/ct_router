@@ -23,7 +23,7 @@ store_registration(Registration) ->
        realm = Realm
       } = Registration,
 
-    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm, _='_'},
+    MatchHead = #ctr_registration{procedure=Procedure, realm=Realm,  _='_'},
     Guard = [],
     GiveObject = ['$_'],
     MatchSpec = [{MatchHead, Guard, GiveObject}],
@@ -41,7 +41,9 @@ store_registration(Registration) ->
                 case mnesia:select(ctr_registration, MatchSpec, write) of
                     [] ->
                         Found = mnesia:wread({ctr_registration, NewId}),
-                        CreateIfNew(Found)
+                        CreateIfNew(Found);
+                    _ ->
+                        {error, procedure_exists}
                 end
         end,
     Result = mnesia:transaction(Register),
