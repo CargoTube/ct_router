@@ -50,7 +50,7 @@ handle_register_result({created, Registration}, Msg, Session) ->
     ctr_broker:send_registration_meta_event(create, Session, Registration),
     send_registered(Msg, Registration, Session);
 handle_register_result({error, procedure_exists}, Msg, Session) ->
-    ReqId = ct_msg:get_request_id(Msg),
+    {ok, ReqId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(Session, ?ERROR(register, ReqId, #{},
                                               procedure_already_exists)),
     ok.
