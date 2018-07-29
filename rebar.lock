@@ -1,7 +1,7 @@
 {"1.1.0",
 [{<<"ct_auth">>,
   {git,"https://github.com/CargoTube/ct_auth.git",
-       {ref,"a5ef340c2f59f0e79563002f3a7a137433c531cd"}},
+       {ref,"8ee790905656c880e9c3c798737ec408b6da098d"}},
   0},
  {<<"ct_msg">>,
   {git,"https://github.com/CargoTube/ct_msg.git",

@@ -27,7 +27,9 @@ new(RegistrationId, CalleeIds, {call, CallerReqId, Options, _Procedure,
                 realm = Realm
                },
     {ok, Invoc} = store_invocation(Invoc0),
-    Disclose = maps:get(disclose_me, Options, false),
+    DiscloseSession = cta_session:is_disclose_caller(CallerSession),
+    DiscloseOption = maps:get(disclose_me, Options, false),
+    Disclose = DiscloseSession or DiscloseOption,
     Details = maybe_set_caller(Disclose, CallerSessId),
     send_invocation(Invoc, RegistrationId, Details, Arguments, ArgumentsKw),
     ok.
