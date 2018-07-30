@@ -5,6 +5,9 @@
 -export([
          get_subscription/2,
          get_subscription_list/1,
+         match_subscription/2,
+         lookup_subscription/3,
+
          add_subscription/3,
          delete_subscription/2,
 
@@ -30,12 +33,6 @@ get_subscription(Id, Realm) ->
     Result = mnesia:transaction(Lookup),
     handle_subscription_get_result(Result).
 
-handle_subscription_get_result({atomic, Result}) ->
-    Result;
-handle_subscription_get_result(Other) ->
-    lager:error("subscription lookup error: ~p", Other),
-    {error, not_found}.
-
 
 get_subscription_list(Realm) ->
     MatchHead = #ctr_subscription{realm=Realm, _='_'},
@@ -54,11 +51,55 @@ get_subscription_list(Realm) ->
     Result = mnesia:transaction(Lookup),
     handle_subscription_list_result(Result).
 
+
+match_subscription(Topic, Realm) ->
+    MatchHead = #ctr_subscription{realm=Realm, uri=Topic, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    Lookup =
+        fun() ->
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
+                    List when is_list(List) ->
+                        {ok, List};
+                    Other ->
+                        {error, Other}
+                end
+        end,
+    Result = mnesia:transaction(Lookup),
+    handle_subscription_list_result(Result).
+
+lookup_subscription(Topic, Options , Realm) ->
+    Match = maps:get(match, Options, exact),
+    MatchHead = #ctr_subscription{realm=Realm, match=Match, uri=Topic, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
+    Lookup =
+        fun() ->
+                case mnesia:select(ctr_subscription, MatchSpec, write) of
+                    [Subscription] ->
+                        {ok, Subscription};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(Lookup),
+    handle_subscription_get_result(Result).
+
+
+handle_subscription_get_result({atomic, Result}) ->
+    Result;
+handle_subscription_get_result(Other) ->
+    lager:error("subscription get/lookup error: ~p", Other),
+    {error, not_found}.
+
 handle_subscription_list_result({atomic, {ok, List}}) ->
     {ok, List};
 handle_subscription_list_result(Other) ->
-    lager:error("subscription get list error: ~p", Other),
+    lager:error("subscription get list/match error: ~p", Other),
     {ok, []}.
+
 
 add_subscription(Uri, Realm, SessionId) ->
     NewId = ctr_utils:gen_global_id(),

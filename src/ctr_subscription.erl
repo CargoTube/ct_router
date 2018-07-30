@@ -11,7 +11,9 @@
          new/2,
          delete/2,
 
-         lookup/2,
+         get/2,
+         lookup/3,
+         match/2,
 
          list_of_realm/1,
          separated_list_of_realm/1,
@@ -49,9 +51,14 @@ new(Uri, Session) ->
 delete(SubscriptionId, SessionId) ->
     ctr_broker_data:delete_subscription(SubscriptionId, SessionId).
 
-lookup(SubscriptionId, Realm) ->
+get(SubscriptionId, Realm) ->
     ctr_broker_data:get_subscription(SubscriptionId, Realm).
 
+lookup(Topic, Options, Realm) ->
+    ctr_broker_data:lookup_subscription(Topic, Options, Realm).
+
+match(Topic, Realm) ->
+    ctr_broker_data:match_subscription(Topic, Realm).
 
 list_of_realm(Realm) ->
     ctr_broker_data:get_subscription_list(Realm).

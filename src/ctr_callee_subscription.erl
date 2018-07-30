@@ -3,17 +3,19 @@
 
 -export([ list/3,
           get/3,
+          lookup/3,
+          %% match/3,
           subscriber/3,
           subscriber_count/3
         ]).
 
 
-list(_Args, _Kw, Realm) ->
+list(undefined, undefined, Realm) ->
     SubsMap = ctr_subscription:separated_list_of_realm(Realm),
     { [SubsMap], undefined}.
 
-get([Id], _Kw, Realm) ->
-    Result = ctr_subscription:lookup(Id, Realm),
+get([Id], undefined, Realm) ->
+    Result = ctr_subscription:get(Id, Realm),
     handle_get_result(Result).
 
 handle_get_result({ok, Subscription}) ->
@@ -23,7 +25,20 @@ handle_get_result({ok, Subscription}) ->
 handle_get_result(_) ->
     throw(no_such_subscription).
 
-subscriber([Id], _Kw, Realm) ->
+lookup([Uri], undefined, Realm) ->
+    lookup([Uri, #{}], undefined, Realm);
+lookup([Uri, Options], undefined, Realm) ->
+    Result = ctr_subscription:lookup(Uri, Options, Realm),
+    handle_lookup_result(Result).
+
+handle_lookup_result({ok, Id}) ->
+    {[Id], undefined};
+handle_lookup_result(_) ->
+    {undefined, undefined}.
+
+
+
+subscriber([Id], undefined, Realm) ->
     Result = get_subscription_subscribers(Id, Realm),
     {[to_subscriber_list(Result)], undefined}.
 
@@ -33,7 +48,7 @@ subscriber_count([Id], _Kw, Realm) ->
 
 
 get_subscription_subscribers(Id, Realm) ->
-    Result = ctr_subscription:lookup(Id, Realm),
+    Result = ctr_subscription:get(Id, Realm),
     maybe_get_subscribers(Result).
 
 maybe_get_subscribers({ok, Subscription}) ->

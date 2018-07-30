@@ -63,7 +63,6 @@ handle_authenticate(Authenticate, SessionId, PeerAtGate) ->
     {_Time, Result} = timer:tc(fun do_handle_authenticate/3, [Authenticate,
                                                             SessionId,
                                                             PeerAtGate]),
-    %% ctr_stats:add(authenticate, Time),
     Result.
 
 handle_established(Type, Message, SessionId, PeerAtGate) ->
