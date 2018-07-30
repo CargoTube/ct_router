@@ -41,7 +41,8 @@ get_subscribers(#ctr_subscription{subscribers = Subs}) ->
     Subs.
 
 
-new(Uri, Realm, SessionId) ->
+new(Uri, Realm, Session) ->
+    SessionId = ctr_session:get_id(Session),
     ctr_broker_data:add_subscription(Uri, Realm, SessionId).
 
 delete(SubscriptionId, SessionId) ->

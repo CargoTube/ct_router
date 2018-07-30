@@ -25,11 +25,13 @@ send_session_meta_event(join, Session) ->
     Keys = [session, authid, authrole, authmethod,
            authprovider, transport],
     Info = maps:with(Keys, cta_session:to_map(Session)),
-    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_join">>, [Info]), Session),
+    Uri = <<"wamp.session.on_join">>,
+    do_publish(?PUBLISH(-1, #{}, Uri, [Info]), Session, true),
     ok;
 send_session_meta_event(leave, Session) ->
     Id = cta_session:get_id(Session),
-    do_publish(?PUBLISH(-1, #{}, <<"wamp.session.on_leave">>, [Id]), Session),
+    Uri = <<"wamp.session.on_leave">>,
+    do_publish(?PUBLISH(-1, #{}, Uri, [Id]), Session, true),
     ok.
 
 
@@ -55,7 +57,7 @@ maybe_suppress_subscription_meta_event(false, Uri, Subscription, Session) ->
     Details = maps:with(Keys, SubscriptionMap),
 
     do_publish(?PUBLISH(-1, #{exclude_me => false}, Uri, [SessId, Details]),
-               Session),
+               Session, true),
     ok;
 maybe_suppress_subscription_meta_event(true, _, _, _) ->
     ok.
@@ -97,9 +99,8 @@ init() ->
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
-    SessionId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    Result = ctr_subscription:new(Uri, Realm, SessionId),
+    Result = ctr_subscription:new(Uri, Realm, Session),
     handle_subscribe_result(Result, Msg, Session).
 
 
@@ -109,10 +110,21 @@ do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
     handle_unsubscribe_result(Result, Msg, Session).
 
 
-do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
-           Session) ->
+do_publish(Msg, Session) ->
+    do_publish(Msg, Session, false).
+
+do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw}, Session,
+           MetaEvent) ->
     Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
+
+
+    DiscloseOption = maps:get(disclose_me, Options, false),
+    DiscloseSession = cta_session:is_disclose_publisher(Session),
+    Disclose = (DiscloseOption or DiscloseSession) and (not MetaEvent),
+
+
+    EventOpts = maybe_set_publisher(Disclose , SessionId, #{}),
 
     {ok, Publication} = ctr_publication:new(Realm, Topic, Options, Arguments,
                                             ArgumentsKw, SessionId),
@@ -120,10 +132,18 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw} = Msg,
     SubId = ctr_publication:get_subscription_id(Publication),
     AllSubs = ctr_publication:get_subscribers(Publication),
     Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, SessionId),
-    send_event(Msg, SubId, PubId, Subs),
+
+    Event = ?EVENT(SubId, PubId, EventOpts, Arguments, ArgumentsKw),
+    send_event(Event, Subs),
 
     WantAcknowledge = maps:get(acknowledge, Options, false),
     maybe_send_published(WantAcknowledge, ReqId, PubId, Session).
+
+maybe_set_publisher(true, SessionId, Options) ->
+    maps:put(publisher, SessionId, Options);
+maybe_set_publisher(false, _, Options) ->
+    maps:remove(publisher, Options).
+
 
 
 handle_subscribe_result({added, Subscription}, Msg, Session) ->
@@ -166,8 +186,8 @@ send_unsubscribed(Msg, Subscription, Session) ->
     ok.
 
 
-send_event({publish, _, _, _, Arguments, ArgumentsKw}, SubId, PubId, Subs) ->
-    Event = ?EVENT(SubId, PubId, #{}, Arguments, ArgumentsKw),
+send_event( Event,  Subs) ->
+    %% Event = ?EVENT(SubId, PubId, EventOpts, Arguments, ArgumentsKw),
     Send =
         fun(SessId, _) ->
                 case cta_session:lookup(SessId) of
