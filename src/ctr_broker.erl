@@ -99,8 +99,7 @@ init() ->
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
-    Realm = cta_session:get_realm(Session),
-    Result = ctr_subscription:new(Uri, Realm, Session),
+    Result = ctr_subscription:new(Uri, Session),
     handle_subscribe_result(Result, Msg, Session).
 
 

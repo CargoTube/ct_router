@@ -8,7 +8,7 @@
          get_uri/1,
          get_subscribers/1,
 
-         new/3,
+         new/2,
          delete/2,
 
          lookup/2,
@@ -41,8 +41,9 @@ get_subscribers(#ctr_subscription{subscribers = Subs}) ->
     Subs.
 
 
-new(Uri, Realm, Session) ->
-    SessionId = ctr_session:get_id(Session),
+new(Uri, Session) ->
+    Realm = cta_session:get_realm(Session),
+    SessionId = cta_session:get_id(Session),
     ctr_broker_data:add_subscription(Uri, Realm, SessionId).
 
 delete(SubscriptionId, SessionId) ->
