@@ -6,8 +6,14 @@
 
 -export([
          new/4,
-         invocation_error/2,
-         yield/2,
+
+         get_id/1,
+         get_callees/1,
+         get_caller_req_id/1,
+         get_caller_sess_id/1,
+
+         find_invocation/2,
+         delete_invocation_if_configured/1,
 
          init/0
         ]).
@@ -15,91 +21,32 @@
 init() ->
     create_table().
 
-new(RegistrationId, CalleeIds, {call, CallerReqId, Options, _Procedure,
-                                Arguments, ArgumentsKw} , CallerSession) ->
+new(RegistrationId, CalleeIds, {call, CallerReqId, _, Procedure, _, _},
+    CallerSession) ->
     Realm = cta_session:get_realm(CallerSession),
     CallerSessId = cta_session:get_id(CallerSession),
-
     Invoc0 = #ctrd_invocation{
                 caller_sess_id = CallerSessId,
                 caller_req_id = CallerReqId,
+                procedure = Procedure,
+                reg_id = RegistrationId,
                 callees = CalleeIds,
                 realm = Realm
                },
-    {ok, Invoc} = store_invocation(Invoc0),
-    DiscloseSession = cta_session:is_disclose_caller(CallerSession),
-    DiscloseOption = maps:get(disclose_me, Options, false),
-    Disclose = DiscloseSession or DiscloseOption,
-    Details = maybe_set_caller(Disclose, CallerSessId),
-    send_invocation(Invoc, RegistrationId, Details, Arguments, ArgumentsKw),
-    ok.
-
-maybe_set_caller(true, SessionId) ->
-    #{caller => SessionId};
-maybe_set_caller(_, _) ->
-    #{}.
+    store_invocation(Invoc0).
 
 
+get_id(#ctrd_invocation{id = Id}) ->
+    Id.
 
-invocation_error({error, invocation, InvocId, ErrorUri, Arguments, ArgumentsKw},
-                 CalleeSession) ->
-    CalleeSessId = cta_session:get_id(CalleeSession),
-    Result = find_invocation(InvocId, CalleeSessId),
-    maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
+get_callees(#ctrd_invocation{callees = Callees}) ->
+    Callees.
 
+get_caller_sess_id(#ctrd_invocation{caller_sess_id = CallerSessId}) ->
+    CallerSessId.
 
-yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
-    CalleeSessId = cta_session:get_id(CalleeSession),
-
-    Result = find_invocation(InvocId, CalleeSessId),
-    maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
-
-maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
-    #ctrd_invocation{
-       caller_sess_id = CallerSessId,
-       caller_req_id = CallerReqId
-      } = Invoc,
-    ok = delete_invocation_if_configured(Invoc),
-    ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
-    send_message([CallerSessId], ResultMsg),
-    ok;
-maybe_send_result(_, _, _, _) ->
-    ok.
-
-maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
-    #ctrd_invocation{
-       caller_sess_id = CallerSessId,
-       caller_req_id = CallerReqId
-      } = Invoc,
-    ok = delete_invocation_if_configured(Invoc),
-    ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
-    send_message([CallerSessId], ResultMsg),
-    ok;
-maybe_send_error(_, _, _, _, _) ->
-    ok.
-
-send_invocation(Invocation, RegistrationId, Options, Args, ArgsKw) ->
-    #ctrd_invocation{
-       id = InvocId,
-       callees = CalleeIds } = Invocation,
-    InvocMsg = ?INVOCATION(InvocId, RegistrationId, Options, Args, ArgsKw),
-    send_message(CalleeIds, InvocMsg),
-    ok.
-
-
-
-send_message([], _) ->
-    ok;
-send_message([SessionId | Tail], Msg) ->
-    maybe_send(cta_session:lookup(SessionId), Msg),
-    send_message(Tail, Msg).
-
-maybe_send({ok, Session}, Msg) ->
-    ct_router:to_session(Session, Msg);
-maybe_send(_, _) ->
-    ok.
-
-
+get_caller_req_id(#ctrd_invocation{caller_req_id = CallerReqId}) ->
+    CallerReqId.
 
 store_invocation(Invoc) ->
     NewId = ctr_utils:gen_global_id(),

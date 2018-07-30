@@ -21,9 +21,11 @@ handle_message(unregister, Message, Session) ->
 handle_message(call, Message, Session) ->
     do_call(Message, Session);
 handle_message(error, Message, Session) ->
-    ctrd_invocation:invocation_error(Message, Session);
+    do_invocation_error(Message, Session);
+    %% ctrd_invocation:invocation_error(Message, Session);
 handle_message(yield, Message, Session) ->
-    ctrd_invocation:yield(Message, Session).
+    do_yield(Message, Session).
+    %% ctrd_invocation:yield(Message, Session).
 
 
 unregister_all(Session) ->
@@ -36,7 +38,6 @@ unregister_all(Session) ->
              end,
     lists:foldl(Delete, ok, Regs),
     ok.
-
 
 do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
     SessId = cta_session:get_id(Session),
@@ -74,7 +75,6 @@ match_registration(false, Procedure, Session) ->
     ctr_registration:match(Procedure, Session).
 
 
-
 handle_unregister_result({atomic, {removed, Registration}}, Msg, Session) ->
     send_unregistered(Msg, Registration, Session);
 handle_unregister_result({atomic, {deleted, Registration}}, Msg, Session) ->
@@ -93,10 +93,18 @@ handle_call_registration({ok, system}, Msg, Session) ->
     Response = ctr_callee:handle_call(Msg, Session),
     ok = ct_router:to_session(Session, Response),
     ok;
-handle_call_registration({ok, Registration}, Msg, Session) ->
+handle_call_registration({ok, Registration},
+                         {call, _, Options, _, Arguments, ArgumentsKw} = Msg,
+                         CallerSession) ->
+    CallerSessId = cta_session:get_id(CallerSession),
     RegId = ctr_registration:get_id(Registration),
     Callees = ctr_registration:get_callees(Registration),
-    ctrd_invocation:new(RegId, Callees, Msg, Session),
+    {ok, Invoc} = ctrd_invocation:new(RegId, Callees, Msg, CallerSession),
+    DiscloseSession = cta_session:is_disclose_caller(CallerSession),
+    DiscloseOption = maps:get(disclose_me, Options, false),
+    Disclose = DiscloseSession or DiscloseOption,
+    Details = maybe_set_caller(Disclose, CallerSessId),
+    send_invocation(Invoc, RegId, Details, Arguments, ArgumentsKw),
     ok;
 handle_call_registration({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
@@ -104,6 +112,44 @@ handle_call_registration({error, not_found}, Msg, Session) ->
     ok = ct_router:to_session(Session, Error),
     ok.
 
+maybe_set_caller(true, SessionId) ->
+    #{caller => SessionId};
+maybe_set_caller(_, _) ->
+    #{}.
+
+
+do_yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
+    CalleeSessId = cta_session:get_id(CalleeSession),
+
+    Result = ctrd_invocation:find_invocation(InvocId, CalleeSessId),
+    maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
+
+maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
+    CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
+    CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
+    ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
+    send_message([CallerSessId], ResultMsg),
+    ok;
+maybe_send_result(_, _, _, _) ->
+    ok.
+
+do_invocation_error({error, invocation, InvocId, ErrorUri, Arguments,
+                     ArgumentsKw}, CalleeSession) ->
+    CalleeSessId = cta_session:get_id(CalleeSession),
+    Result = ctrd_invocation:find_invocation(InvocId, CalleeSessId),
+    maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
+
+
+maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
+    CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
+    CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
+    ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
+    send_message([CallerSessId], ResultMsg),
+    ok;
+maybe_send_error(_, _, _, _, _) ->
+    ok.
 
 send_registered(Msg, Registration, Session) ->
     ctr_broker:send_registration_meta_event(register, Session, Registration),
@@ -119,4 +165,23 @@ send_unregistered(Msg, Registration, Session) ->
     {ok, NewSession} = cta_session:remove_registration(RegId, Session),
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     ok = ct_router:to_session(NewSession, ?UNREGISTERED(RequestId)),
+    ok.
+
+send_invocation(Invocation, RegistrationId, Options, Args, ArgsKw) ->
+    InvocId = ctrd_invocation:get_id(Invocation),
+    CalleeIds = ctrd_invocation:get_callees(Invocation),
+    InvocMsg = ?INVOCATION(InvocId, RegistrationId, Options, Args, ArgsKw),
+    send_message(CalleeIds, InvocMsg),
+    ok.
+
+
+send_message([], _) ->
+    ok;
+send_message([SessionId | Tail], Msg) ->
+    maybe_send(cta_session:lookup(SessionId), Msg),
+    send_message(Tail, Msg).
+
+maybe_send({ok, Session}, Msg) ->
+    ct_router:to_session(Session, Msg);
+maybe_send(_, _) ->
     ok.

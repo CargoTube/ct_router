@@ -31,6 +31,7 @@
           id = undefined,
           pub_sess_id = undefined,
           options = undefined,
+          details = #{},
           subs = [],
           realm = undefined,
           topic = undefined,
@@ -54,6 +55,8 @@
           id = undefined,
           caller_sess_id = undefined,
           caller_req_id = undefined,
+          reg_id = undefined,
+          procedure = <<>>,
           callees = [],
           results = [],
           realm = undefined
