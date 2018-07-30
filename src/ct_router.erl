@@ -28,7 +28,7 @@ agent_roles() ->
          features => #{
            subscriber_blackwhite_listing => true,
            publisher_exclusion => true,
-           publisher_identification => false,
+           publisher_identification => true,
            publication_trustlevels => false,
            subscription_meta_api => false,
            pattern_based_subscription => false,
