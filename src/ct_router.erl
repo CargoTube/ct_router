@@ -44,7 +44,7 @@ agent_roles() ->
            call_canceling => false,
            caller_identification => true,
            call_trustlevel => false,
-           registration_meta_api => false,
+           registration_meta_api => true,
            pattern_based_registration => false,
            shared_registration => false,
            sharded_registration => false,
