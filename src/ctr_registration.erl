@@ -54,7 +54,6 @@ lookup(Procedure, Options, Realm) ->
     ctr_dealer_data:lookup_registration(Procedure, Options, Realm).
 
 match(Procedure, Session) ->
-    Realm = cta_session:get_realm(Session),
     ctr_dealer_data:match_registration(Procedure, Realm).
 
 list_of_realm(Realm) ->

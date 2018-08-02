@@ -69,7 +69,8 @@ do_call({call, _ReqId, _Options, Procedure, _Arguments, _ArgumentsKw} = Msg,
 match_registration(true, _, _) ->
     {ok, system};
 match_registration(false, Procedure, Session) ->
-    ctr_registration:match(Procedure, Session).
+    Realm = cta_session:get_realm(Session),
+    ctr_registration:match(Procedure, Realm).
 
 
 handle_unregister_result({atomic, {removed, Registration}}, Msg, Session) ->
