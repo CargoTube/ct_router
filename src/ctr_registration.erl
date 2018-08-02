@@ -16,9 +16,8 @@
          match/2,
          get/2,
 
-         separated_list_of_realm/1,
+         separated_list_of_realm/1
 
-         init/0
         ]).
 
 new(Procedure, Realm, SessId) ->
@@ -78,6 +77,3 @@ separated_list_of_realm(Realm) ->
 
 delete(RegistrationId, SessionId) ->
   ctr_dealer_data:delete_registration(RegistrationId, SessionId).
-
-init() ->
-    ctr_dealer_data:init().

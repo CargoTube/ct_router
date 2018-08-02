@@ -10,8 +10,7 @@
         ]).
 
 init() ->
-    ctrd_invocation:init(),
-    ctr_registration:init().
+    ctr_dealer_data:init().
 
 
 handle_message(register, Message, Session) ->
@@ -117,9 +116,7 @@ maybe_set_caller(_, _) ->
 
 
 do_yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
-    CalleeSessId = cta_session:get_id(CalleeSession),
-
-    Result = ctrd_invocation:find_invocation(InvocId, CalleeSessId),
+    Result = ctrd_invocation:get_invocation(InvocId, CalleeSession),
     maybe_send_result(Result, #{}, Arguments, ArgumentsKw).
 
 maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
@@ -134,8 +131,7 @@ maybe_send_result(_, _, _, _) ->
 
 do_invocation_error({error, invocation, InvocId, ErrorUri, Arguments,
                      ArgumentsKw}, CalleeSession) ->
-    CalleeSessId = cta_session:get_id(CalleeSession),
-    Result = ctrd_invocation:find_invocation(InvocId, CalleeSessId),
+    Result = ctrd_invocation:get_invocation(InvocId, CalleeSession),
     maybe_send_error(Result, #{}, ErrorUri, Arguments, ArgumentsKw).
 
 

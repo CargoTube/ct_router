@@ -18,14 +18,9 @@
          match/2,
          get/2,
 
-         separated_list_of_realm/1,
-
-         init/0
+         separated_list_of_realm/1
         ]).
 
-init() ->
-    ctr_broker_data:init(),
-    ok.
 
 to_map(#ctr_subscription{id = Id, created = Created, uri = Uri,
                          match = Match, subscribers = Subs }) ->

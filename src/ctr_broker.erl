@@ -95,7 +95,7 @@ unsubscribe_all(Session) ->
 
 
 init() ->
-    ctr_subscription:init().
+    ctr_broker_data:init().
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
