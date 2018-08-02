@@ -30,7 +30,7 @@ agent_roles() ->
            publisher_exclusion => true,
            publisher_identification => true,
            publication_trustlevels => false,
-           subscription_meta_api => false,
+           subscription_meta_api => true,
            pattern_based_subscription => false,
            sharded_subscription => false,
            event_history => false,
