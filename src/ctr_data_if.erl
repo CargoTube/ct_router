@@ -7,14 +7,13 @@
 -callback init() -> ok.
 
 
-
 %% for broker with subscriptions
 
 -callback list_subscriptions(Realm :: binary()) ->
     {ok, [ #ctr_subscription{} ]} | {error, Reason :: any()}.
 
 
--callback lookup_subscriptions(Procedure :: binary(), Options :: map(),
+-callback lookup_subscription(Procedure :: binary(), Options :: map(),
                                Realm :: binary()) ->
     {ok, #ctr_subscription{}} | {error, Reason :: any()}.
 
