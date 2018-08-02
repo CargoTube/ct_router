@@ -31,7 +31,8 @@ lookup([Uri, Options], undefined, Realm) ->
     Result = ctr_subscription:lookup(Uri, Options, Realm),
     handle_lookup_result(Result).
 
-handle_lookup_result({ok, Id}) ->
+handle_lookup_result({ok, Subsciption}) ->
+    Id = ctr_subscription:get_id(Subsciption),
     {[Id], undefined};
 handle_lookup_result(_) ->
     {[null], undefined}.
@@ -42,7 +43,9 @@ match([Uri], undefined, Realm) ->
     handle_match_result(Result).
 
 
-handle_match_result({ok, SubscriptionList}) ->
+handle_match_result({ok, []})  ->
+    {[null], undefined};
+handle_match_result({ok, SubscriptionList})  ->
     Convert = fun(Subscription, List) ->
                       Id = ctr_subscription:get_id(Subscription),
                       [ Id | List]
