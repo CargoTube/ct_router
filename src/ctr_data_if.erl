@@ -28,13 +28,14 @@
     {ok, #ctr_subscription{}} | {error, Reason :: any()}.
 
 
--callback add_subscription(Uri :: binary(), Realm :: binary(),
-                           SessionId :: non_neg_integer()) ->
+-callback add_subscription(Uri :: binary(), Match :: atom(),
+                           SessionId :: non_neg_integer(), Realm :: binary()) ->
     { created | added, #ctr_subscription{}}.
 
 
 -callback  remove_subscription(SubscriptionId :: non_neg_integer(),
-                               SessionId :: non_neg_integer()) ->
+                               SessionId :: non_neg_integer(),
+                               Realm :: binary() ) ->
     { removed | deleted, #ctr_subscription{} } | {error, not_found}.
 
 
@@ -43,7 +44,7 @@
 
 
 
-%% for caller with registrations and invocations
+%% for dealer with registrations and invocations
 
 -callback list_registrations(Realm :: binary()) ->
     {ok, [#ctr_registration{}]}.
@@ -62,12 +63,17 @@
     {ok, #ctr_registration{}} | {error, Reason :: any()}.
 
 
--callback add_registration(Registration :: #ctr_registration{}) ->
+-callback add_registration(Procedure :: binary(), Match :: atom(),
+                           SessionId :: non_neg_integer(), Realm :: binary()) ->
     {created, #ctr_registration{}} | {error, Reason :: any()}.
 
 -callback remove_registration(RegistrationId :: non_neg_integer(),
-                              SessionId :: non_neg_integer()) ->
+                              SessionId :: non_neg_integer(),
+                              Realm :: binary() ) ->
     {removed | deleted, #ctr_registration{}} | {error, Reason :: any()}.
+
+
+%% invocation for keeping track of running calls
 
 -callback add_invocation(#ctrd_invocation{}) ->
     {ok, #ctrd_invocation{}}.
@@ -76,5 +82,6 @@
                          Realm :: binary()) ->
     {ok, #ctrd_invocation{}} | {error, Reason :: any()}.
 
--callback remove_invocation(#ctrd_invocation{}) ->
+-callback remove_invocation(InvocationId :: non_neg_integer(),
+                            Realm :: binary()) ->
     ok | {error, Reason :: any()}.
