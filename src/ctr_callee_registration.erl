@@ -2,8 +2,10 @@
 
 -export([list/3,
          get/3,
-         callees/3,
-         callee_count/3
+         lookup/3,
+         match/3,
+         list_callees/3,
+         count_callees/3
         ]).
 
 list(_, _, Realm) ->
@@ -11,7 +13,7 @@ list(_, _, Realm) ->
     { [ RegMap ], undefined}.
 
 get([Id], _, Realm) ->
-    Result = ctr_registration:lookup(Id, Realm),
+    Result = ctr_registration:get(Id, Realm),
     maybe_convert_to_map(Result).
 
 maybe_convert_to_map({ok, Registration}) ->
@@ -21,13 +23,40 @@ maybe_convert_to_map({ok, Registration}) ->
 maybe_convert_to_map(_Other) ->
     throw(no_such_registration).
 
-callees([Id], _, Realm) ->
-    Result = ctr_registration:lookup(Id, Realm),
+match([Procedure], _ArgsKw, Realm) ->
+    Result = ctr_registration:match(Procedure, Realm),
+    handle_match_result(Result).
+
+handle_match_result({ok, Registration}) ->
+    Id = ctr_registration:get_id(Registration),
+    {[Id], undefined};
+handle_match_result(_) ->
+    {[null], undefined}.
+
+
+
+lookup([Procedure, OptionsIn], _ArgsKw, Realm) ->
+    Options = ctr_msg_conversion:value_to_internal(OptionsIn),
+    Result = ctr_registration:match(Procedure, Options, Realm),
+    handle_lookup_result(Result);
+lookup([Procedure], ArgsKw, Realm) ->
+    lookup([Procedure, #{}], ArgsKw, Realm).
+
+handle_lookup_result({ok, Registration}) ->
+    Id = ctr_registration:get_id(Registration),
+    {[Id], undefined};
+handle_lookup_result(_) ->
+    {[null], undefined}.
+
+
+
+list_callees([Id], _, Realm) ->
+    Result = ctr_registration:get(Id, Realm),
     handle_callee_list_result(Result).
 
 
-callee_count([Id], _, Realm) ->
-    Result = ctr_registration:lookup(Id, Realm),
+count_callees([Id], _, Realm) ->
+    Result = ctr_registration:get(Id, Realm),
     handle_callee_count_result(Result).
 
 handle_callee_list_result({ok, Registration}) ->

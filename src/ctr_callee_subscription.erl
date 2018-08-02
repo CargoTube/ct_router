@@ -5,8 +5,8 @@
           get/3,
           lookup/3,
           match/3,
-          subscriber/3,
-          subscriber_count/3
+          list_subscribers/3,
+          count_subscribers/3
         ]).
 
 
@@ -57,11 +57,11 @@ handle_match_result(_) ->
     {[null], undefined}.
 
 
-subscriber([Id], undefined, Realm) ->
+list_subscribers([Id], undefined, Realm) ->
     Result = get_subscription_subscribers(Id, Realm),
     {[to_subscriber_list(Result)], undefined}.
 
-subscriber_count([Id], _Kw, Realm) ->
+count_subscribers([Id], _Kw, Realm) ->
     Result = get_subscription_subscribers(Id, Realm),
     {[length(to_subscriber_list(Result))], undefined}.
 

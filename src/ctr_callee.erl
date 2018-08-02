@@ -70,20 +70,20 @@ session_get(Args, Kw, Realm) ->
 reg_list(Args, Kw, Realm) ->
     ctr_callee_registration:list(Args, Kw, Realm).
 
-reg_lookup(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+reg_lookup(Args, Kw, Realm) ->
+    ctr_callee_registration:lookup(Args, Kw, Realm).
 
-reg_match(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
+reg_match(Args, Kw, Realm) ->
+    ctr_callee_registration:match(Args, Kw, Realm).
 
 reg_get(Args, Kw, Realm) ->
     ctr_callee_registration:get(Args, Kw, Realm).
 
 reg_callees(Args, Kw, Realm) ->
-    ctr_callee_registration:callees(Args, Kw, Realm).
+    ctr_callee_registration:list_callees(Args, Kw, Realm).
 
 reg_callee_count(Args, Kw, Realm) ->
-    ctr_callee_registration:callee_count(Args, Kw, Realm).
+    ctr_callee_registration:count_callees(Args, Kw, Realm).
 
 
 
@@ -100,7 +100,7 @@ subs_get(Args, Kw, Realm) ->
     ctr_callee_subscription:get(Args, Kw, Realm).
 
 subs_sub_list(Args, Kw, Realm) ->
-    ctr_callee_subscription:subscriber(Args, Kw, Realm).
+    ctr_callee_subscription:list_subscribers(Args, Kw, Realm).
 
 subs_sub_count(Args, Kw, Realm) ->
-    ctr_callee_subscription:subscriber_count(Args, Kw, Realm).
+    ctr_callee_subscription:count_subscribers(Args, Kw, Realm).

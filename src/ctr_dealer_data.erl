@@ -2,14 +2,16 @@
 
 -include("ct_router.hrl").
 
--export([init/0,
+-export([
+         get_registration_list/1,
+         lookup_registration/3,
+         match_registration/2,
+         get_registration/2,
 
          store_registration/1,
-         match_registration/2,
+         delete_registration/2,
 
-         get_registrations_of_realm/1,
-         lookup_regisration/2,
-         delete_registration/2
+         init/0
         ]).
 
 
@@ -77,12 +79,7 @@ match_registration(Procedure, Session) ->
     Result = mnesia:transaction(FindCallee),
     handle_find_result(Result).
 
-handle_find_result({atomic, {ok, Registration}}) ->
-    {ok, Registration};
-handle_find_result({atomic, {error, not_found}}) ->
-    {error, not_found}.
-
-get_registrations_of_realm(Realm) ->
+get_registration_list(Realm) ->
     MatchHead = #ctr_registration{realm=Realm, _='_'},
     Guard = [],
     GiveObject = ['$_'],
@@ -107,9 +104,10 @@ handle_registration_result(Other) ->
     {ok, []}.
 
 
-
-lookup_regisration(Id, Realm) ->
-    MatchHead = #ctr_registration{realm=Realm, id=Id, _='_'},
+lookup_registration(Procedure, Options, Realm) ->
+    Match = maps:get(match, Options, exact),
+    MatchHead = #ctr_registration{realm=Realm, procedure=Procedure,
+                                  match=Match, _='_'},
     Guard = [],
     GiveObject = ['$_'],
     MatchSpec = [{MatchHead, Guard, GiveObject}],
@@ -128,13 +126,38 @@ lookup_regisration(Id, Realm) ->
 
 
 
-delete_registration(RegId, SessId) ->
+get_registration(Id, Realm) ->
+    MatchHead = #ctr_registration{realm=Realm, id=Id, _='_'},
+    Guard = [],
+    GiveObject = ['$_'],
+    MatchSpec = [{MatchHead, Guard, GiveObject}],
 
+    GetRegistrations =
+        fun() ->
+                case mnesia:select(ctr_registration, MatchSpec, read) of
+                    [Registration] ->
+                        {ok, Registration};
+                    _ ->
+                        {error, not_found}
+                end
+        end,
+    Result = mnesia:transaction(GetRegistrations),
+    handle_find_result(Result).
+
+
+handle_find_result({atomic, {ok, Registration}}) ->
+    {ok, Registration};
+handle_find_result({atomic, {error, not_found}}) ->
+    {error, not_found}.
+
+
+delete_registration(RegId, SessId) ->
     DeleteIfEmpty =
         fun([], RegistrationId, Registration) ->
                 mnesia:delete({ctr_registration, RegistrationId}),
                 {deleted, Registration};
            (_, _RegistrationId, Registration) ->
+                ok = mnesia:write(Registration),
                 {removed, Registration}
         end,
 

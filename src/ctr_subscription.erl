@@ -2,27 +2,29 @@
 
 -include("ct_router.hrl").
 
--export([to_map/1,
+-export([
+         to_map/1,
+
+         new/2,
+         delete/2,
 
          get_id/1,
          get_uri/1,
          get_subscribers/1,
 
-         new/2,
-         delete/2,
-
-         get/2,
-         lookup/3,
-         match/2,
 
          list_of_realm/1,
+         lookup/3,
+         match/2,
+         get/2,
+
          separated_list_of_realm/1,
 
          init/0
         ]).
 
 init() ->
-    ctr_broker_data:create_table(),
+    ctr_broker_data:init(),
     ok.
 
 to_map(#ctr_subscription{id = Id, created = Created, uri = Uri,
@@ -41,7 +43,6 @@ get_uri(#ctr_subscription{uri = Uri}) ->
 
 get_subscribers(#ctr_subscription{subscribers = Subs}) ->
     Subs.
-
 
 new(Uri, Session) ->
     Realm = cta_session:get_realm(Session),

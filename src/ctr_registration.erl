@@ -3,19 +3,22 @@
 -include("ct_router.hrl").
 
 -export([
-         init/0,
+         to_map/1,
 
          new/3,
+         delete/2,
+
          get_id/1,
-         to_map/1,
          get_callees/1,
 
-         match/2,
-         lookup/2,
-
          list_of_realm/1,
+         lookup/3,
+         match/2,
+         get/2,
+
          separated_list_of_realm/1,
-         delete/2
+
+         init/0
         ]).
 
 new(Procedure, Realm, SessId) ->
@@ -45,14 +48,17 @@ to_map(#ctr_registration{id = Id, created = Created, procedure = Uri,
 get_callees(#ctr_registration{ callee_sess_ids = Callees } ) ->
     Callees.
 
-lookup(RegistrationId, Realm) ->
-    ctr_dealer_data:lookup_regisration(RegistrationId, Realm).
+get(RegistrationId, Realm) ->
+    ctr_dealer_data:get_registration(RegistrationId, Realm).
+
+lookup(Procedure, Options, Realm) ->
+    ctr_dealer_data:lookup_registration(Procedure, Options, Realm).
 
 match(Procedure, Session) ->
     ctr_dealer_data:match_registration(Procedure, Session).
 
 list_of_realm(Realm) ->
-    ctr_dealer_data:get_registrations_of_realm(Realm).
+    ctr_dealer_data:registration_list(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Registrations} = list_of_realm(Realm),

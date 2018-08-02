@@ -3,18 +3,20 @@
 -include("ct_router.hrl").
 
 -export([
-         get_subscription/2,
          get_subscription_list/1,
-         match_subscription/2,
          lookup_subscription/3,
+         match_subscription/2,
+         get_subscription/2,
 
          add_subscription/3,
          delete_subscription/2,
 
          store_publication/1,
-         create_table/0
+         init/0
          ]).
 
+init() ->
+    create_table().
 
 get_subscription(Id, Realm) ->
     MatchHead = #ctr_subscription{id=Id, realm=Realm, _='_'},
