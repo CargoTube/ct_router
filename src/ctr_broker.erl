@@ -47,7 +47,7 @@ send_subscription_meta_event(Event, Session, Subscription)
     {Event, Uri} = lists:keyfind(Event, 1, Mapping),
 
     SubUri = ctr_subscription:get_uri(Subscription),
-    IsMeta = is_tuple(lists:keyfind(SubUri, 2, Mapping)),
+    IsMeta = ctr_callee:is_procedure(SubUri),
     maybe_suppress_subscription_meta_event(IsMeta, Uri, Subscription, Session).
 
 maybe_suppress_subscription_meta_event(false, Uri, Subscription, Session) ->
