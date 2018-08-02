@@ -27,7 +27,8 @@ handle_get_result(_) ->
 
 lookup([Uri], undefined, Realm) ->
     lookup([Uri, #{}], undefined, Realm);
-lookup([Uri, Options], undefined, Realm) ->
+lookup([Uri, OptionsIn], undefined, Realm) ->
+    Options = ct_msg_conversion:value_to_internal(OptionsIn),
     Result = ctr_subscription:lookup(Uri, Options, Realm),
     handle_lookup_result(Result).
 
