@@ -58,7 +58,7 @@ match(Procedure, Session) ->
     ctr_dealer_data:match_registration(Procedure, Session).
 
 list_of_realm(Realm) ->
-    ctr_dealer_data:registration_list(Realm).
+    ctr_dealer_data:list_registrations(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Registrations} = list_of_realm(Realm),

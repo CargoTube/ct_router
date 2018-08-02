@@ -3,7 +3,7 @@
 -include("ct_router.hrl").
 
 -export([
-         get_subscription_list/1,
+         list_subscriptions/1,
          lookup_subscription/3,
          match_subscription/2,
          get_subscription/2,
@@ -36,7 +36,7 @@ get_subscription(Id, Realm) ->
     handle_subscription_get_result(Result).
 
 
-get_subscription_list(Realm) ->
+list_subscriptions(Realm) ->
     MatchHead = #ctr_subscription{realm=Realm, _='_'},
     Guard = [],
     GiveObject = ['$_'],

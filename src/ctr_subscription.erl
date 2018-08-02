@@ -62,7 +62,7 @@ match(Topic, Realm) ->
     ctr_broker_data:match_subscription(Topic, Realm).
 
 list_of_realm(Realm) ->
-    ctr_broker_data:get_subscription_list(Realm).
+    ctr_broker_data:list_subscriptions(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Subscriptions} = list_of_realm(Realm),

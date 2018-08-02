@@ -3,7 +3,7 @@
 -include("ct_router.hrl").
 
 -export([
-         get_registration_list/1,
+         list_registrations/1,
          lookup_registration/3,
          match_registration/2,
          get_registration/2,
@@ -79,7 +79,7 @@ match_registration(Procedure, Session) ->
     Result = mnesia:transaction(FindCallee),
     handle_find_result(Result).
 
-get_registration_list(Realm) ->
+list_registrations(Realm) ->
     MatchHead = #ctr_registration{realm=Realm, _='_'},
     Guard = [],
     GiveObject = ['$_'],
