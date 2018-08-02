@@ -51,7 +51,7 @@ store_invocation(Invoc) ->
 
 get_invocation(InvocId, CalleeSession) ->
     Realm = cta_session:get_realm(CalleeSession),
-    ctr_broker_data:get_invocation(InvocId, Realm).
+    ctr_dealer_data:get_invocation(InvocId, Realm).
 
 
 
