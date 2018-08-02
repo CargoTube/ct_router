@@ -37,7 +37,7 @@ handle_match_result(_) ->
 
 lookup([Procedure, OptionsIn], _ArgsKw, Realm) ->
     Options = ct_msg_conversion:value_to_internal(OptionsIn),
-    Result = ctr_registration:match(Procedure, Options, Realm),
+    Result = ctr_registration:lookup(Procedure, Options, Realm),
     handle_lookup_result(Result);
 lookup([Procedure], ArgsKw, Realm) ->
     lookup([Procedure, #{}], ArgsKw, Realm).
