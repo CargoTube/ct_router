@@ -22,10 +22,8 @@ handle_message(call, Message, Session) ->
     do_call(Message, Session);
 handle_message(error, Message, Session) ->
     do_invocation_error(Message, Session);
-    %% ctrd_invocation:invocation_error(Message, Session);
 handle_message(yield, Message, Session) ->
     do_yield(Message, Session).
-    %% ctrd_invocation:yield(Message, Session).
 
 
 unregister_all(Session) ->

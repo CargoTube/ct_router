@@ -4,7 +4,7 @@
 -export([ list/3,
           get/3,
           lookup/3,
-          %% match/3,
+          match/3,
           subscriber/3,
           subscriber_count/3
         ]).
@@ -34,7 +34,18 @@ lookup([Uri, Options], undefined, Realm) ->
 handle_lookup_result({ok, Id}) ->
     {[Id], undefined};
 handle_lookup_result(_) ->
-    {undefined, undefined}.
+    {[null], undefined}.
+
+
+match([Uri], undefined, Realm) ->
+    Result = ctr_subscription:match(Uri, Realm),
+    handle_match_result(Result).
+
+
+handle_match_result({ok, IdList}) ->
+    {[IdList], undefined};
+handle_match_result(_) ->
+    {[null], undefined}.
 
 
 

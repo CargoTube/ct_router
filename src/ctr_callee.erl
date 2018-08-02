@@ -93,9 +93,8 @@ subs_list(Args, Kw, Realm) ->
 subs_lookup(Args, Kw, Realm) ->
     ctr_callee_subscription:lookup(Args, Kw, Realm).
 
-subs_match(_Args, _Kw, _Realm) ->
-    throw(no_such_procedure).
-    %% ctr_callee_subscription:match(Args, Kw, Realm).
+subs_match(Args, Kw, Realm) ->
+    ctr_callee_subscription:match(Args, Kw, Realm).
 
 subs_get(Args, Kw, Realm) ->
     ctr_callee_subscription:get(Args, Kw, Realm).
