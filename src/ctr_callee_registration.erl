@@ -54,16 +54,16 @@ list_callees([Id], _, Realm) ->
     Result = ctr_registration:get(Id, Realm),
     handle_callee_list_result(Result).
 
-
-count_callees([Id], _, Realm) ->
-    Result = ctr_registration:get(Id, Realm),
-    handle_callee_count_result(Result).
-
 handle_callee_list_result({ok, Registration}) ->
     Callees = ctr_registration:get_callees(Registration),
     {[Callees], undefined};
 handle_callee_list_result({error, not_found}) ->
     throw(no_such_registration).
+
+count_callees([Id], _, Realm) ->
+    Result = ctr_registration:get(Id, Realm),
+    handle_callee_count_result(Result).
+
 
 handle_callee_count_result({ok, Registration}) ->
     Callees = ctr_registration:get_callees(Registration),

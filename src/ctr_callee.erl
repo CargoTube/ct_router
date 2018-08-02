@@ -17,15 +17,15 @@
          { <<"wamp.registration.lookup">>, fun reg_lookup/3 },
          { <<"wamp.registration.match">>, fun reg_match/3 },
          { <<"wamp.registration.get">>, fun reg_get/3 },
-         { <<"wamp.registration.list_callees">>, fun reg_callees/3 },
-         { <<"wamp.registration.count_callees">>, fun reg_callee_count/3 },
+         { <<"wamp.registration.list_callees">>, fun reg_list_callees/3 },
+         { <<"wamp.registration.count_callees">>, fun reg_count_callees/3 },
 
          { <<"wamp.subscription.list">>, fun subs_list/3 },
          { <<"wamp.subscription.lookup">>, fun subs_lookup/3 },
          { <<"wamp.subscription.match">>, fun subs_match/3 },
          { <<"wamp.subscription.get">>, fun subs_get/3 },
-         { <<"wamp.subscription.list_subscribers">>, fun subs_sub_list/3 },
-         { <<"wamp.subscription.count_subscribers">>, fun subs_sub_count/3 },
+         { <<"wamp.subscription.list_subscribers">>, fun subs_list_subs/3 },
+         { <<"wamp.subscription.count_subscribers">>, fun subs_count_subs/3 },
 
          undefined
         ]).
@@ -79,10 +79,10 @@ reg_match(Args, Kw, Realm) ->
 reg_get(Args, Kw, Realm) ->
     ctr_callee_registration:get(Args, Kw, Realm).
 
-reg_callees(Args, Kw, Realm) ->
+reg_list_callees(Args, Kw, Realm) ->
     ctr_callee_registration:list_callees(Args, Kw, Realm).
 
-reg_callee_count(Args, Kw, Realm) ->
+reg_count_callees(Args, Kw, Realm) ->
     ctr_callee_registration:count_callees(Args, Kw, Realm).
 
 
@@ -99,8 +99,8 @@ subs_match(Args, Kw, Realm) ->
 subs_get(Args, Kw, Realm) ->
     ctr_callee_subscription:get(Args, Kw, Realm).
 
-subs_sub_list(Args, Kw, Realm) ->
+subs_list_subs(Args, Kw, Realm) ->
     ctr_callee_subscription:list_subscribers(Args, Kw, Realm).
 
-subs_sub_count(Args, Kw, Realm) ->
+subs_count_subs(Args, Kw, Realm) ->
     ctr_callee_subscription:count_subscribers(Args, Kw, Realm).
