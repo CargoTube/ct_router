@@ -42,11 +42,15 @@ match([Uri], undefined, Realm) ->
     handle_match_result(Result).
 
 
-handle_match_result({ok, IdList}) ->
-    {[IdList], undefined};
+handle_match_result({ok, SubscriptionList}) ->
+    Convert = fun(Subscription, List) ->
+                      Id = ctr_subscription:get_id(Subscription),
+                      [ Id | List]
+              end,
+    IdList = lists:foldl(Convert, [], SubscriptionList),
+    {[lists:reverse(IdList)], undefined};
 handle_match_result(_) ->
     {[null], undefined}.
-
 
 
 subscriber([Id], undefined, Realm) ->
