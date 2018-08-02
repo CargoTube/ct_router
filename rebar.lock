@@ -5,7 +5,7 @@
   0},
  {<<"ct_msg">>,
   {git,"https://github.com/CargoTube/ct_msg.git",
-       {ref,"9a2d2dcd514dc34e28e38288db477279c72a22bf"}},
+       {ref,"9173add4f199361433492631edea76e06034e5ad"}},
   0},
  {<<"ct_stats">>,
   {git,"https://github.com/CargoTube/ct_stats.git",
