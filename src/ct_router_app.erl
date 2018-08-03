@@ -7,7 +7,7 @@
 
 
 start(_StartType, _StartArgs) ->
-    ok = ctr_db:init(),
+    ctr_gen_data:initialize(),
     ct_router_sup:start_link().
 
 

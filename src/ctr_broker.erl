@@ -8,9 +8,7 @@
 
          send_session_meta_event/2,
          send_subscription_meta_event/3,
-         send_registration_meta_event/3,
-
-         init/0
+         send_registration_meta_event/3
         ]).
 
 handle_message(subscribe, Message, Session) ->
@@ -92,10 +90,6 @@ unsubscribe_all(Session) ->
              end,
     lists:foldl(Delete, ok, Subs),
     ok.
-
-
-init() ->
-    ctr_broker_data:init().
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->

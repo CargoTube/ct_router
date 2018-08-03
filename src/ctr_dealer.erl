@@ -4,13 +4,8 @@
 
 -export([
          handle_message/3,
-         unregister_all/1,
-
-         init/0
+         unregister_all/1
         ]).
-
-init() ->
-    ctr_dealer_data:init().
 
 
 handle_message(register, Message, Session) ->

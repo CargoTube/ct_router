@@ -20,7 +20,7 @@ new(Realm, Topic, Options, Arguments, ArgumentsKw, SessionId) ->
                                    ts = calendar:universal_time(),
                                    arguments = Arguments,
                                    argumentskw = ArgumentsKw},
-    ctr_broker_data:store_publication(Publication).
+    store(Publication).
 
 get_id(#ctr_publication{id = Id}) ->
     Id.
@@ -35,4 +35,4 @@ get_details(#ctr_publication{details = Details}) ->
     Details.
 
 store(Publication) ->
-    ctr_broker_data:store_publication(Publication).
+    ctr_gen_data:do_store_publication(Publication).

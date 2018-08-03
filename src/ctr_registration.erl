@@ -29,7 +29,7 @@ new(Procedure, Realm, SessId) ->
        created = calendar:universal_time(),
        callee_sess_ids = [SessId]
       },
-    ctr_dealer_data:store_registration(NewReg).
+    ctr_gen_data:store_registration(NewReg).
 
 get_id(#ctr_registration{id = Id}) ->
     Id.
@@ -48,16 +48,16 @@ get_callees(#ctr_registration{ callee_sess_ids = Callees } ) ->
     Callees.
 
 get(RegistrationId, Realm) ->
-    ctr_dealer_data:get_registration(RegistrationId, Realm).
+    ctr_gen_data:get_registration(RegistrationId, Realm).
 
 lookup(Procedure, Options, Realm) ->
-    ctr_dealer_data:lookup_registration(Procedure, Options, Realm).
+    ctr_gen_data:lookup_registration(Procedure, Options, Realm).
 
 match(Procedure, Realm) ->
-    ctr_dealer_data:match_registration(Procedure, Realm).
+    ctr_gen_data:match_registration(Procedure, Realm).
 
 list_of_realm(Realm) ->
-    ctr_dealer_data:list_registrations(Realm).
+    ctr_gen_data:list_registrations(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Registrations} = list_of_realm(Realm),
@@ -76,4 +76,4 @@ separated_list_of_realm(Realm) ->
 
 
 delete(RegistrationId, SessionId) ->
-  ctr_dealer_data:delete_registration(RegistrationId, SessionId).
+  ctr_gen_data:delete_registration(RegistrationId, SessionId).

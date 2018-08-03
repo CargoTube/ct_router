@@ -14,8 +14,6 @@ init() ->
     ok.
 
 init_tables() ->
-    ctr_broker:init(),
-    ctr_dealer:init(),
     cta_session:init(),
     cta_realm:init(),
     ok.
