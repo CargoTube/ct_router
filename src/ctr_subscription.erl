@@ -53,13 +53,13 @@ get(SubscriptionId, Realm) ->
     ctr_gen_data:do_get_subscription(SubscriptionId, Realm).
 
 lookup(Topic, Options, Realm) ->
-    ctr_gen_data:lookup_subscription(Topic, Options, Realm).
+    ctr_gen_data:do_lookup_subscription(Topic, Options, Realm).
 
 match(Topic, Realm) ->
-    ctr_gen_data:match_subscription(Topic, Realm).
+    ctr_gen_data:do_match_subscription(Topic, Realm).
 
 list_of_realm(Realm) ->
-    ctr_gen_data:list_subscriptions(Realm).
+    ctr_gen_data:do_list_subscriptions(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Subscriptions} = list_of_realm(Realm),
