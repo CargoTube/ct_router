@@ -16,6 +16,7 @@ init() ->
 init_tables() ->
     cta_session:init(),
     cta_realm:init(),
+    ctr_gen_data:initialize(),
     ok.
 
 

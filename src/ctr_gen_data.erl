@@ -194,6 +194,7 @@ do_remove_invocation(InvocationId, Realm) ->
 
 initialize() ->
     Module = get_module(),
+    lager:debug("data interface is ~p",[Module]),
     Module:init().
 
 
