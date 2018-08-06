@@ -1,4 +1,4 @@
--module(ctr_dealer_data).
+-module(ctr_gen_data_ram_dealer).
 
 -include("ct_router.hrl").
 
