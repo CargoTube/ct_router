@@ -5,8 +5,8 @@
 -export([
          to_map/1,
 
-         new/2,
-         delete/2,
+         add/3,
+         remove/2,
 
          get_id/1,
          get_uri/1,
@@ -39,16 +39,18 @@ get_uri(#ctr_subscription{uri = Uri}) ->
 get_subscribers(#ctr_subscription{subscribers = Subs}) ->
     Subs.
 
-new(Uri, Session) ->
+add(Uri, Match, Session) ->
     Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
-    ctr_gen_data:add_subscription(Uri, Realm, SessionId).
+    ctr_gen_data:do_add_subscription(Uri, Match, Realm, SessionId).
 
-delete(SubscriptionId, SessionId) ->
-    ctr_gen_data:delete_subscription(SubscriptionId, SessionId).
+remove(SubscriptionId, Session) ->
+    Realm = cta_session:get_realm(Session),
+    SessionId = cta_session:get_id(Session),
+    ctr_gen_data:do_remove_subscription(SubscriptionId, SessionId, Realm).
 
 get(SubscriptionId, Realm) ->
-    ctr_gen_data:get_subscription(SubscriptionId, Realm).
+    ctr_gen_data:do_get_subscription(SubscriptionId, Realm).
 
 lookup(Topic, Options, Realm) ->
     ctr_gen_data:lookup_subscription(Topic, Options, Realm).

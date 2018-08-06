@@ -22,20 +22,16 @@ handle_message(yield, Message, Session) ->
 
 unregister_all(Session) ->
     Regs = cta_session:get_registrations(Session),
-    SessId = cta_session:get_id(Session),
 
     Delete = fun(RegId, ok) ->
-                     ctr_registration:delete(RegId, SessId),
+                     ctr_registration:remove(RegId, Session),
                      ok
              end,
     lists:foldl(Delete, ok, Regs),
     ok.
 
 do_register({register, _ReqId, _Options, Procedure} = Msg, Session) ->
-    SessId = cta_session:get_id(Session),
-    Realm = cta_session:get_realm(Session),
-
-    Result = ctr_registration:new(Procedure, Realm, SessId),
+    Result = ctr_registration:add(Procedure, exact, Session),
     handle_register_result(Result, Msg, Session).
 
 
@@ -49,8 +45,7 @@ handle_register_result({error, procedure_exists}, Msg, Session) ->
     ok.
 
 do_unregister({unregister, _ReqId, RegId} = Msg, Session) ->
-    SessId = cta_session:get_id(Session),
-    Result = ctr_registration:delete(RegId, SessId),
+    Result = ctr_registration:remove(RegId, Session),
     handle_unregister_result(Result, Msg, Session).
 
 

@@ -46,12 +46,12 @@ get_caller_req_id(#ctrd_invocation{caller_req_id = CallerReqId}) ->
     CallerReqId.
 
 store_invocation(Invoc) ->
-    ctr_gen_data:store_invocation(Invoc).
+    ctr_gen_data:do_add_invocation(Invoc).
 
 
 get_invocation(InvocId, CalleeSession) ->
     Realm = cta_session:get_realm(CalleeSession),
-    ctr_gen_data:get_invocation(InvocId, Realm).
+    ctr_gen_data:do_get_invocation(InvocId, Realm).
 
 
 
@@ -60,6 +60,6 @@ delete_invocation_if_configured(Invocation) ->
     maybe_delete_invocation(DoDelete, Invocation).
 
 maybe_delete_invocation(true, Invocation) ->
-    ctr_gen_data:delete_invocation(Invocation);
+    ctr_gen_data:do_remove_invocation(Invocation);
 maybe_delete_invocation(false, _) ->
     ok.

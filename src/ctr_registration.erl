@@ -5,8 +5,8 @@
 -export([
          to_map/1,
 
-         new/3,
-         delete/2,
+         add/3,
+         remove/2,
 
          get_id/1,
          get_callees/1,
@@ -20,16 +20,11 @@
 
         ]).
 
-new(Procedure, Realm, SessId) ->
-    NewId = ctr_utils:gen_global_id(),
-    NewReg = #ctr_registration{
-       id = NewId,
-       procedure = Procedure,
-       realm = Realm,
-       created = calendar:universal_time(),
-       callee_sess_ids = [SessId]
-      },
-    ctr_gen_data:store_registration(NewReg).
+
+add(Procedure, Match, Session) ->
+    SessionId = cta_session:get_id(Session),
+    Realm = cta_session:get_realm(Session),
+    ctr_gen_data:do_add_registration(Procedure, Match, SessionId, Realm).
 
 get_id(#ctr_registration{id = Id}) ->
     Id.
@@ -48,16 +43,16 @@ get_callees(#ctr_registration{ callee_sess_ids = Callees } ) ->
     Callees.
 
 get(RegistrationId, Realm) ->
-    ctr_gen_data:get_registration(RegistrationId, Realm).
+    ctr_gen_data:do_get_registration(RegistrationId, Realm).
 
 lookup(Procedure, Options, Realm) ->
-    ctr_gen_data:lookup_registration(Procedure, Options, Realm).
+    ctr_gen_data:do_lookup_registration(Procedure, Options, Realm).
 
 match(Procedure, Realm) ->
-    ctr_gen_data:match_registration(Procedure, Realm).
+    ctr_gen_data:do_match_registration(Procedure, Realm).
 
 list_of_realm(Realm) ->
-    ctr_gen_data:list_registrations(Realm).
+    ctr_gen_data:do_list_registrations(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Registrations} = list_of_realm(Realm),
@@ -75,5 +70,7 @@ separated_list_of_realm(Realm) ->
     #{exact => E, prefix => P, wildcard => W}.
 
 
-delete(RegistrationId, SessionId) ->
-  ctr_gen_data:delete_registration(RegistrationId, SessionId).
+remove(RegistrationId, Session) ->
+    SessionId = cta_session:get_id(Session),
+    Realm = cta_session:get_realm(Session),
+    ctr_gen_data:do_remove_registration(RegistrationId, SessionId, Realm).

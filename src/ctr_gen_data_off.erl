@@ -20,7 +20,9 @@
 
          add_invocation/1,
          get_invocation/2,
-         remove_invocation/2
+         remove_invocation/2,
+
+         init/0
         ]).
 
 list_subscriptions(_Realm) ->
@@ -82,3 +84,6 @@ get_invocation(_InvocationId, _Realm) ->
 
 remove_invocation(_InvocationId, _Realm) ->
     {error, not_found}.
+
+init() ->
+     ok.

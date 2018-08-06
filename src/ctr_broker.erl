@@ -82,10 +82,9 @@ send_registration_meta_event(Event, Session, Registration)
 
 unsubscribe_all(Session) ->
     Subs = cta_session:get_subscriptions(Session),
-    SessionId = cta_session:get_id(Session),
 
     Delete = fun(SubId, ok) ->
-                     ctr_subscription:delete(SubId, SessionId),
+                     ctr_subscription:remove(SubId, Session),
                      ok
              end,
     lists:foldl(Delete, ok, Subs),
@@ -93,13 +92,12 @@ unsubscribe_all(Session) ->
 
 
 do_subscribe({subscribe, _RequestId, _Options, Uri} = Msg, Session) ->
-    Result = ctr_subscription:new(Uri, Session),
+    Result = ctr_subscription:add(Uri, exact, Session),
     handle_subscribe_result(Result, Msg, Session).
 
 
 do_unsubscribe({unsubscribe, _ReqId, SubId} = Msg , Session) ->
-    SessionId = cta_session:get_id(Session),
-    Result = ctr_subscription:delete(SubId, SessionId),
+    Result = ctr_subscription:remove(SubId, Session),
     handle_unsubscribe_result(Result, Msg, Session).
 
 
