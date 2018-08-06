@@ -12,7 +12,9 @@
          delete_subscription/2,
 
          store_publication/1,
-         init/0
+         init/0,
+
+         dump_all/0
          ]).
 
 init() ->
@@ -194,15 +196,10 @@ handle_delete_result({atomic, {error, not_found}}) ->
 store_publication(Pub0) ->
     #ctr_publication{
        realm = Realm,
-       topic = Topic,
-       pub_sess_id = SessId
+       topic = Topic
       } = Pub0,
-    {ok, Session} = cta_session:lookup(SessId),
-    Realm = cta_session:get_realm(Session),
     NewPubId = ctr_utils:gen_global_id(),
-
     NewPub = Pub0#ctr_publication{id = NewPubId},
-
     MatchHead = #ctr_subscription{uri=Topic, realm=Realm, _='_'},
     Guard = [],
     GiveObject = ['$_'],
@@ -237,6 +234,25 @@ handle_publication_store_result({atomic, {ok, Publication}}, _Pub0) ->
     {ok, Publication};
 handle_publication_store_result({atomic, {error, pub_id_exists}}, Pub0) ->
     store_publication(Pub0).
+
+
+
+dump_all() ->
+    Print = fun(Entry, _) ->
+                    lager:debug("~p", [Entry]),
+                    ok
+            end,
+    Transaction = fun() ->
+                          lager:debug("*** subscriptions ***"),
+                          mnesia:foldl(Print, ok, ctr_subscription),
+                          lager:debug("*** publications ***"),
+                          mnesia:foldl(Print, ok, ctr_publication),
+                          lager:debug("*** end ***"),
+                          ok
+                  end,
+    mnesia:transaction(Transaction).
+
+
 
 create_table() ->
     mnesia:delete_table(ctr_subscription),

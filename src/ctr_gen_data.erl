@@ -1,6 +1,4 @@
 -module(ctr_gen_data).
-
-
 -include("ct_router.hrl").
 
 -export([
