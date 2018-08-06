@@ -105,7 +105,7 @@ handle_subscription_list_result(Other) ->
     {ok, []}.
 
 
-add_subscription(Uri, Realm, SessionId) ->
+add_subscription(Uri, SessionId, Realm) ->
     NewId = ctr_utils:gen_global_id(),
     NewSub = #ctr_subscription{id = NewId,
                                uri = Uri,
