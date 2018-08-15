@@ -24,7 +24,7 @@
 add(Procedure, Match, Session) ->
     SessionId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    ctr_data:do_add_registration(Procedure, Match, SessionId, Realm).
+    ctr_data:add_registration(Procedure, Match, SessionId, Realm).
 
 get_id(#ctr_registration{id = Id}) ->
     Id.
@@ -43,16 +43,16 @@ get_callees(#ctr_registration{ callee_sess_ids = Callees } ) ->
     Callees.
 
 get(RegistrationId, Realm) ->
-    ctr_data:do_get_registration(RegistrationId, Realm).
+    ctr_data:get_registration(RegistrationId, Realm).
 
 lookup(Procedure, Options, Realm) ->
-    ctr_data:do_lookup_registration(Procedure, Options, Realm).
+    ctr_data:lookup_registration(Procedure, Options, Realm).
 
 match(Procedure, Realm) ->
-    ctr_data:do_match_registration(Procedure, Realm).
+    ctr_data:match_registration(Procedure, Realm).
 
 list_of_realm(Realm) ->
-    ctr_data:do_list_registrations(Realm).
+    ctr_data:list_registrations(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Registrations} = list_of_realm(Realm),
@@ -73,4 +73,4 @@ separated_list_of_realm(Realm) ->
 remove(RegistrationId, Session) ->
     SessionId = cta_session:get_id(Session),
     Realm = cta_session:get_realm(Session),
-    ctr_data:do_remove_registration(RegistrationId, SessionId, Realm).
+    ctr_data:remove_registration(RegistrationId, SessionId, Realm).

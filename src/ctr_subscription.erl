@@ -42,24 +42,24 @@ get_subscribers(#ctr_subscription{subscribers = Subs}) ->
 add(Uri, Match, Session) ->
     Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
-    ctr_data:do_add_subscription(Uri, Match, Realm, SessionId).
+    ctr_data:add_subscription(Uri, Match, Realm, SessionId).
 
 remove(SubscriptionId, Session) ->
     Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
-    ctr_data:do_remove_subscription(SubscriptionId, SessionId, Realm).
+    ctr_data:remove_subscription(SubscriptionId, SessionId, Realm).
 
 get(SubscriptionId, Realm) ->
-    ctr_data:do_get_subscription(SubscriptionId, Realm).
+    ctr_data:get_subscription(SubscriptionId, Realm).
 
 lookup(Topic, Options, Realm) ->
-    ctr_data:do_lookup_subscription(Topic, Options, Realm).
+    ctr_data:lookup_subscription(Topic, Options, Realm).
 
 match(Topic, Realm) ->
-    ctr_data:do_match_subscription(Topic, Realm).
+    ctr_data:match_subscription(Topic, Realm).
 
 list_of_realm(Realm) ->
-    ctr_data:do_list_subscriptions(Realm).
+    ctr_data:list_subscriptions(Realm).
 
 separated_list_of_realm(Realm) ->
     {ok, Subscriptions} = list_of_realm(Realm),
