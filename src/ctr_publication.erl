@@ -35,4 +35,4 @@ get_details(#ctr_publication{details = Details}) ->
     Details.
 
 store(Publication) ->
-    ctr_gen_data:do_store_publication(Publication).
+    ctr_data:do_store_publication(Publication).
