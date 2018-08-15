@@ -1,6 +1,6 @@
 -module(ctr_subscription).
 
--include("ct_router.hrl").
+-include_lib("ctr_data/include/ctr_data.hrl").
 
 -export([
          to_map/1,

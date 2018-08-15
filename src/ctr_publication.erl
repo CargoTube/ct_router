@@ -1,6 +1,6 @@
 -module(ctr_publication).
 
--include("ct_router.hrl").
+-include_lib("ctr_data/include/ctr_data.hrl").
 
 -export([new/6,
          get_id/1,

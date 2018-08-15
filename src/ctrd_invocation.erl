@@ -2,7 +2,7 @@
 
 
 -include_lib("ct_msg/include/ct_msg.hrl").
--include("ct_router.hrl").
+-include_lib("ctr_data/include/ctr_data.hrl").
 
 -export([
          new/4,
