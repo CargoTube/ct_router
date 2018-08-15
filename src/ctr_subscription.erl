@@ -40,9 +40,9 @@ get_subscribers(#ctr_subscription{subscribers = Subs}) ->
     Subs.
 
 add(Uri, Match, Session) ->
-    Realm = cta_session:get_realm(Session),
     SessionId = cta_session:get_id(Session),
-    ctr_data:add_subscription(Uri, Match, Realm, SessionId).
+    Realm = cta_session:get_realm(Session),
+    ctr_data:add_subscription(Uri, Match, SessionId, Realm).
 
 remove(SubscriptionId, Session) ->
     Realm = cta_session:get_realm(Session),
