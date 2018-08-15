@@ -28,6 +28,12 @@
 -callback init() -> ok.
 
 
+-define(DATA_MODULE(),
+        application:get_env(ct_router, data_if, ctr_gen_data_off)).
+-define(RUN(Func, Args),
+        Module = ?DATA_MODULE(),
+        apply(Module, Func, Args)).
+
 -type uri() :: binary().
 -type error_reason() :: any().
 -type options() :: map().
@@ -113,88 +119,62 @@
     ok | {error, Reason :: error_reason()}.
 
 do_list_subscriptions(Realm) ->
-    Module = get_module(),
-    Module:list_subscriptions(Realm).
+    ?RUN(list_subscriptions, [Realm]).
 
 do_lookup_subscription(Procedure, Options, Realm) ->
-    Module = get_module(),
-    Module:lookup_subscription(Procedure, Options, Realm).
-
+    ?RUN(lookup_subscription, [Procedure, Options, Realm]).
 
 do_match_subscription(Procedure, Realm) ->
-    Module = get_module(),
-    Module:match_subscription(Procedure, Realm).
+    ?RUN(match_subscription, [Procedure, Realm]).
 
 
 do_get_subscription(ProcedureId, Realm) ->
-    Module = get_module(),
-    Module:get_subscription(ProcedureId, Realm).
-
+    ?RUN(get_subscription, [ProcedureId, Realm]).
 
 do_add_subscription(Uri, Match, SessionId, Realm) ->
-    Module = get_module(),
-    Module:add_subscription(Uri, Match, SessionId, Realm).
-
+    ?RUN(add_subscription, [Uri, Match, SessionId, Realm]).
 
 do_remove_subscription(SubscriptionId, SessionId, Realm) ->
-    Module = get_module(),
-    Module:remove_subscription(SubscriptionId, SessionId, Realm).
+    ?RUN(remove_subscription, [SubscriptionId, SessionId, Realm]).
 
 
 do_store_publication(Publication) ->
-    Module = get_module(),
-    Module:store_publication(Publication).
-
-
+    ?RUN(store_publication, [Publication]).
 
 do_list_registrations(Realm) ->
-    Module = get_module(),
-    Module:list_registrations(Realm).
+    ?RUN(list_registrations, [Realm]).
+
+do_lookup_registration(Procedure, Options, Realm) ->
+    ?RUN(lookup_registration, [Procedure, Options, Realm]).
 
 
-do_lookup_registration(Procdure, Options, Realm) ->
-    Module = get_module(),
-    Module:lookup_registration(Procdure, Options, Realm).
+do_match_registration(Procedure, Realm) ->
+    ?RUN(match_registration, [Procedure, Realm]).
 
-
-do_match_registration(Procdure, Realm) ->
-    Module = get_module(),
-    Module:match_registration(Procdure, Realm).
-
-do_get_registration(ProcdureId, Realm) ->
-    Module = get_module(),
-    Module:get_registration(ProcdureId, Realm).
+do_get_registration(ProcedureId, Realm) ->
+    ?RUN(get_registration, [ProcedureId, Realm]).
 
 
 do_add_registration(Procedure, Match, SessionId, Realm) ->
-    Module = get_module(),
-    Module:add_registration(Procedure, Match, SessionId, Realm).
+    ?RUN(add_registration, [Procedure, Match, SessionId, Realm]).
 
 do_remove_registration(RegistrationId, SessionId, Realm) ->
-    Module = get_module(),
-    Module:remove_registration(RegistrationId, SessionId, Realm).
+    ?RUN(remove_registration, [RegistrationId, SessionId, Realm]).
 
 
 %% invocation for keeping track of running calls
 
 do_add_invocation(Invocation) ->
-    Module = get_module(),
-    Module:add_invocation(Invocation).
+    ?RUN(add_invocation, [Invocation]).
 
 do_get_invocation(InvocationId, Realm) ->
-    Module = get_module(),
-    Module:get_invocation(InvocationId, Realm).
+    ?RUN(get_invocation, [InvocationId, Realm]).
 
 do_remove_invocation(InvocationId, Realm) ->
-    Module = get_module(),
-    Module:remove_invocation(InvocationId, Realm).
+    ?RUN(remove_invocation, [InvocationId, Realm]).
 
 
 initialize() ->
-    Module = get_module(),
+    Module = ?DATA_MODULE(),
     lager:debug("data interface is ~p",[Module]),
     Module:init().
-
-
-get_module() ->
-    application:get_env(ct_router, data_if, ctr_gen_data_off).
