@@ -22,15 +22,15 @@ new(RegistrationId, CalleeIds, {call, CallerReqId, _, Procedure, _, _},
     CallerSession) ->
     Realm = cta_session:get_realm(CallerSession),
     CallerSessId = cta_session:get_id(CallerSession),
-    Invoc0 = #ctrd_invocation{
-                caller_sess_id = CallerSessId,
-                caller_req_id = CallerReqId,
-                procedure = Procedure,
-                reg_id = RegistrationId,
-                callees = CalleeIds,
-                realm = Realm
-               },
-    store_invocation(Invoc0).
+    Invoc = #ctrd_invocation{
+               caller_sess_id = CallerSessId,
+               caller_req_id = CallerReqId,
+               procedure = Procedure,
+               reg_id = RegistrationId,
+               callees = CalleeIds,
+               realm = Realm
+              },
+    store_invocation(Invoc).
 
 
 get_id(#ctrd_invocation{id = Id}) ->
