@@ -29,27 +29,29 @@ agent_roles() ->
            subscriber_blackwhite_listing => true,
            publisher_exclusion => true,
            publisher_identification => true,
-           publication_trustlevels => false,
            subscription_meta_api => true,
+           session_meta_api => true,
+
            pattern_based_subscription => false,
-           sharded_subscription => false,
            event_history => false,
-           session_meta_api => true
+           publication_trustlevels => false,
+           sharded_subscription => false
           }
         },
        dealer => #{
          features => #{
+           caller_identification => true,
+           registration_meta_api => true,
+           session_meta_api => true,
+
            progressive_call_results => false,
            call_timeout => false,
            call_canceling => false,
-           caller_identification => true,
            call_trustlevel => false,
-           registration_meta_api => true,
            pattern_based_registration => false,
-           shared_registration => false,
-           sharded_registration => false,
            testament_meta_api => false,
-           session_meta_api => true
+           shared_registration => false,
+           sharded_registration => false
            }
         }
      }.
