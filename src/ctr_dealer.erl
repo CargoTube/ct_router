@@ -97,8 +97,12 @@ handle_call_registration({ok, Registration},
 handle_call_registration({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     Error = ?ERROR(call, RequestId, #{}, no_such_procedure),
+    {ok, Invoc} = ctrd_invocation:new(-1, [], Msg, Session),
+    {ok, UpdatedInvoc} = add_result_to_invocation(Error, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
     ok = ct_router:to_session(Session, Error),
     ok.
+
 
 maybe_set_caller(true, SessionId) ->
     #{caller => SessionId};
@@ -113,8 +117,11 @@ do_yield({yield, InvocId, _Options, Arguments, ArgumentsKw}, CalleeSession) ->
 maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
     CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
     CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
-    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
     ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
+
+    {ok, UpdatedInvoc} = add_result_to_invocation(ResultMsg, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
+
     send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_result(_, _, _, _) ->
@@ -129,12 +136,18 @@ do_invocation_error({error, invocation, InvocId, ErrorUri, Arguments,
 maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
     CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
     CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
-    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
     ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
+    {ok, UpdatedInvoc} = add_result_to_invocation(ResultMsg, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
     send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_error(_, _, _, _, _) ->
     ok.
+
+
+add_result_to_invocation(ResultMsg, Invoc) ->
+    UpdatedInvoc = ctrd_invocation:add_result(ResultMsg, Invoc),
+    ctrd_invocation:update(UpdatedInvoc).
 
 send_registered(Msg, Registration, Session) ->
     ctr_broker:send_registration_meta_event(register, Session, Registration),

@@ -6,11 +6,13 @@
 
 -export([
          new/4,
+         update/1,
 
          get_id/1,
          get_callees/1,
          get_caller_req_id/1,
          get_caller_sess_id/1,
+         add_result/2,
 
          get_invocation/2,
          delete_invocation_if_configured/1
@@ -28,9 +30,13 @@ new(RegistrationId, CalleeIds, {call, CallerReqId, _, Procedure, _, _},
                procedure = Procedure,
                reg_id = RegistrationId,
                callees = CalleeIds,
+               ts = calendar:universal_time(),
                realm = Realm
               },
     store_invocation(Invoc).
+
+update(Invocation) ->
+    ctr_data:update_invocation(Invocation).
 
 
 get_id(#ctrd_invocation{id = Id}) ->
@@ -44,6 +50,10 @@ get_caller_sess_id(#ctrd_invocation{caller_sess_id = CallerSessId}) ->
 
 get_caller_req_id(#ctrd_invocation{caller_req_id = CallerReqId}) ->
     CallerReqId.
+
+add_result(Result, #ctrd_invocation{results = Results} = Invoc) ->
+    Invoc#ctrd_invocation{results = Results ++ [Result]}.
+
 
 store_invocation(Invoc) ->
     ctr_data:add_invocation(Invoc).
