@@ -50,8 +50,8 @@ get_caller_sess_id(#ctrd_invocation{caller_sess_id = CallerSessId}) ->
 get_caller_req_id(#ctrd_invocation{caller_req_id = CallerReqId}) ->
     CallerReqId.
 
-add_result(Result, #ctrd_invocation{id = Id}) ->
-    ctr_data:invocation_add_result(Result, Id).
+add_result(Result, #ctrd_invocation{id = Id, realm=Realm}) ->
+    ctr_data:invocation_add_result(Result, Id, Realm).
 
 
 store_invocation(Invoc) ->

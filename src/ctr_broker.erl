@@ -120,13 +120,20 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw}, Session,
     {ok, Publication} = ctr_publication:new(Realm, Topic, Options, Arguments,
                                             ArgumentsKw, SessionId),
     PubId = ctr_publication:get_id(Publication),
-    SubId = ctr_publication:get_subscription_id(Publication),
     AllSubs = ctr_publication:get_subscribers(Publication),
-    Subs = ctrb_blackwhite_pubex:filter_subscriber(AllSubs, Options, SessionId),
 
-    Event = ?EVENT(SubId, PubId, EventOpts, Arguments, ArgumentsKw),
-    send_event(Event, Subs),
+    Send =
+        fun({SubId, Match, Subs}, ok) ->
+                NewSubs = ctrb_blackwhite_pubex:filter_subscriber(Subs,
+                                                                  Options,
+                                                                  SessionId),
 
+                NewOpts = maybe_add_topic(Match, Topic, EventOpts),
+                Event = ?EVENT(SubId, PubId, NewOpts, Arguments, ArgumentsKw),
+                send_event(Event, NewSubs),
+                ok
+        end,
+    ok = lists:foldl(Send, ok, AllSubs),
     WantAcknowledge = maps:get(acknowledge, Options, false),
     maybe_send_published(WantAcknowledge, ReqId, PubId, Session).
 
@@ -134,6 +141,11 @@ maybe_set_publisher(true, SessionId, Options) ->
     maps:put(publisher, SessionId, Options);
 maybe_set_publisher(false, _, Options) ->
     maps:remove(publisher, Options).
+
+maybe_add_topic(exact, _Topic, Options) ->
+    Options;
+maybe_add_topic(_, Topic, Options) ->
+    maps:put(topic, Topic, Options).
 
 
 
