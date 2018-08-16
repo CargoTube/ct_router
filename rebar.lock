@@ -17,7 +17,7 @@
   0},
  {<<"ctr_data">>,
   {git,"https://github.com/CargoTube/ctr_data.git",
-       {ref,"0b4c8e16be0b37ff934fe454d4fbe73852b62962"}},
+       {ref,"fb2f5682279bed31cfb86cdf1c25724c26b4d36d"}},
   0},
  {<<"eper">>,{pkg,<<"eper">>,<<"0.99.1">>},0},
  {<<"goldrush">>,{pkg,<<"goldrush">>,<<"0.1.9">>},1},
