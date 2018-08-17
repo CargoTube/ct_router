@@ -123,7 +123,7 @@ do_publish({publish, ReqId, Options, Topic, Arguments, ArgumentsKw}, Session,
     AllSubs = ctr_publication:get_subscribers(Publication),
 
     Send =
-        fun({SubId, Match, Subs}, ok) ->
+        fun(#{id := SubId, match := Match, subs:= Subs}, ok) ->
                 NewSubs = ctrb_blackwhite_pubex:filter_subscriber(Subs,
                                                                   Options,
                                                                   SessionId),
