@@ -98,8 +98,8 @@ handle_call_registration({error, not_found}, Msg, Session) ->
     {ok, RequestId} = ct_msg:get_request_id(Msg),
     Error = ?ERROR(call, RequestId, #{}, no_such_procedure),
     {ok, Invoc} = ctrd_invocation:new(-1, [], Msg, Session),
-    {ok, UpdatedInvoc} = ctrd_invocation:add_result(Error, Invoc),
-    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
+    ok = ctrd_invocation:add_result(Error, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
     ok = ct_router:to_session(Session, Error),
     ok.
 
@@ -118,8 +118,8 @@ maybe_send_result({ok, Invoc}, Details, Arguments, ArgumentsKw) ->
     CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
     CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
     ResultMsg = ?RESULT(CallerReqId, Details, Arguments, ArgumentsKw),
-    {ok, UpdatedInvoc} = ctrd_invocation:add_result(ResultMsg, Invoc),
-    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
+    ok = ctrd_invocation:add_result(ResultMsg, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
     send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_result(_, _, _, _) ->
@@ -135,8 +135,8 @@ maybe_send_error({ok, Invoc}, Details, Uri, Arguments, ArgumentsKw) ->
     CallerSessId = ctrd_invocation:get_caller_sess_id(Invoc),
     CallerReqId = ctrd_invocation:get_caller_req_id(Invoc),
     ResultMsg = ?ERROR(call, CallerReqId, Details, Uri, Arguments, ArgumentsKw),
-    {ok, UpdatedInvoc} = ctrd_invocation:add_result(ResultMsg, Invoc),
-    ok = ctrd_invocation:delete_invocation_if_configured(UpdatedInvoc),
+    ok = ctrd_invocation:add_result(ResultMsg, Invoc),
+    ok = ctrd_invocation:delete_invocation_if_configured(Invoc),
     send_message([CallerSessId], ResultMsg),
     ok;
 maybe_send_error(_, _, _, _, _) ->
