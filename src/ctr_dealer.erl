@@ -78,7 +78,9 @@ handle_unregister_result({atomic, {error, not_found}}, Msg, Session) ->
     ok.
 
 handle_call_registration({ok, system}, Msg, Session) ->
+    {ok, Invoc} = ctrd_invocation:new(-100, [system], Msg, Session),
     Response = ctr_callee:handle_call(Msg, Session),
+    ok = ctrd_invocation:add_result(Response, Invoc),
     ok = ct_router:to_session(Session, Response),
     ok;
 handle_call_registration({ok, Registration},
